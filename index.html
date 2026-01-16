@@ -1,0 +1,2278 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Peer To Peer Queens</title>
+
+
+
+    <style>
+        /* ============================================================
+   1. GLOBAL VARIABLES & DESIGN TOKENS
+   ============================================================ */
+        :root {
+            /* --- Grid Layout Math --- */
+            --label-size: 6vw;
+            --overhead: 10vw;
+
+            /* Dynamic cell size based on grid size (--size set via JS) */
+            --cell: min(15vw, calc((90vw - var(--overhead)) / var(--size, 10)));
+
+            /* --- Dynamic Typography --- */
+            --font-h2: clamp(20px, 5vw, 32px);
+            --font-ui: clamp(16px, 4vw, 18px);
+            --font-log: clamp(14px, 3.5vw, 16px);
+            --font-timer: clamp(24px, 8vw, 42px);
+            --font-labels: clamp(12px, 2.5vw, 16px);
+            --font-icons: calc(var(--cell) * 0.65);
+
+            /* --- Touch Accessibility & Inputs --- */
+            --touch-target: clamp(44px, 10vw, 54px);
+            --input-width: clamp(60px, 15vw, 80px);
+
+            /* --- Logic Engine Color Palette --- */
+            --Purple: #B497D6;
+            /* c0 */
+            --Orange: #F6C28B;
+            /* c1 */
+            --Blue: #9ABCF3;
+            /* c2 */
+            --White: #D9D9D9;
+            /* c3 */
+            --Red: #E67E60;
+            /* c4 */
+            --Yellow: #E6E68E;
+            /* c5 */
+            --Green: #A7D095;
+            /* c6 */
+            --Gray: #B1A89B;
+            /* c7 */
+            --Teal: #8EE6D3;
+            /* c8 */
+            --Pink: #F39AC2;
+            /* c9 */
+            --Brown: #A67C52;
+            /* c10 */
+            --Indigo: #6D78AD;
+            /* c11 */
+            --Lime: #D4E68E;
+            /* c12 */
+            --Cyan: #8EDEE6;
+            /* c13 */
+            --Maroon: #A65252;
+            /* c14 */
+            --Olive: #7C8A4F;
+            /* c15 */
+        }
+
+   /* ============================================================
+   2. CORE LAYOUT & CONTAINERS
+   ============================================================ */
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #f0f2f5;
+            padding: 10px;
+            margin: 0;
+            overflow-x: hidden;
+            font-size: var(--font-ui);
+        }
+
+        .panel {
+            background: white;
+            padding: clamp(15px, 5vw, 25px);
+            border-radius: 12px;
+            height: auto;
+            width: 95vw;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            box-sizing: border-box;
+        }
+
+        .module {
+            background: white;
+            padding: clamp(12px, 4vw, 20px);
+            border-radius: 12px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            box-sizing: border-box;
+            margin-bottom: 15px;
+        }
+
+        h2 {
+            font-size: var(--font-h2);
+            margin-top: 0;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .flex-row {
+            display: flex;
+        }
+
+        /* Updated Header Styling */
+        .header-section { text-align: center; margin-top: 10px; margin-bottom: 25px; width: 95vw; max-width: 800px; }
+        .header-section h1 { font-size: var(--font-h1); margin: 0; color: #1a1a1a; letter-spacing: -0.5px; }
+        .header-section p { font-size: 18px; color: #666; margin: 8px 0 4px 0; font-weight: 500; }
+        
+        .author-link { 
+            font-size: 14px; 
+            color: #007AFF; 
+            text-decoration: none; 
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: opacity 0.2s;
+        }
+        .author-link:hover { opacity: 0.7; text-decoration: underline; }
+
+        /* ============================================================
+   3. THE GRID SYSTEM & BOARD STRUCTURE
+   ============================================================ */
+        .grid-area-container {
+            position: relative;
+            width: fit-content;
+            height: fit-content;
+            line-height: 0;
+        }
+
+        .board-wrapper {
+            display: inline-block;
+            background: #f0f2f5;
+            padding: clamp(5px, 2vw, 15px);
+            border-radius: 8px;
+        }
+
+        .grid-frame {
+            border: 4px solid #000;
+            background: #000;
+            display: inline-block;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        #solver-grid,
+        #builder-grid,
+        #play-grid {
+            border: 4px solid #000;
+            display: grid;
+            grid-template-columns: repeat(var(--size), var(--cell));
+            grid-template-rows: repeat(var(--size), var(--cell));
+            gap: 0;
+            touch-action: none;
+            user-select: none;
+            width: fit-content;
+            max-width: 100%;
+        }
+
+        #play-grid.hidden {
+            visibility: hidden;
+        }
+
+        #play-grid.game-over {
+            pointer-events: none;
+            opacity: 0.7;
+            filter: grayscale(0.5);
+            transition: all 0.5s ease;
+        }
+
+        #countdown-overlay {
+            display: flex;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            color: #fff;
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            font-size: clamp(40px, 15vw, 80px);
+            font-weight: bold;
+            border-radius: 0;
+            pointer-events: auto;
+        }
+
+        /* ============================================================
+   4. CELL LOGIC & PIECE VISUALS
+   ============================================================ */
+        .cell {
+            width: var(--cell);
+            height: var(--cell);
+            border: 0.5px solid #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--font-icons);
+            box-sizing: border-box;
+        }
+
+        #builder-grid .cell:not([class*="c"]) {
+            background: #ffffff;
+            border: 0.5px solid #ddd;
+        }
+
+        /* Interaction States */
+        .cell:hover {
+            filter: brightness(92%);
+            cursor: pointer;
+        }
+
+        .cell:active {
+            filter: brightness(80%);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .cell.dragging-over {
+            filter: brightness(85%);
+            outline: 2px solid rgba(255, 255, 255, 0.4);
+            outline-offset: -4px;
+        }
+
+        /* Logic Symbols */
+        .queen::after {
+            content: '♛';
+            filter: drop-shadow(0 0 2px white);
+        }
+
+        .blocked::after {
+            content: '•';
+            color: rgba(0, 0, 0, 0.3);
+            font-weight: bold;
+        }
+
+        .cell.conflict {
+            background-color: #ffcccc !important;
+            box-shadow: inset 0 0 15px #ff4d4d;
+            outline: 2px solid #d9534f;
+            z-index: 5;
+        }
+
+        /* Logic Highlighting & Ghosting */
+        .cell.highlight-logic {
+            outline: 3px solid #020ef1 !important;
+            outline-offset: -3px;
+            z-index: 10;
+            position: relative;
+            transition: all 0.3s;
+            color: #020ef1;
+            animation: pulse-blue 2s infinite alternate;
+        }
+
+        .cell.highlight-logic::after {
+            content: '•';
+            color: #020ef1;
+            font-size: var(--font-icons);
+            font-weight: 900;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 20;
+            text-shadow: 0 0 5px white;
+            animation: pulse-instigator 0.8s infinite alternate;
+        }
+
+        .cell.highlight-queen {
+            outline: 3px solid #28a745 !important;
+            outline-offset: -3px;
+            position: relative;
+            z-index: 10;
+            color: #28a745;
+            animation: pulse-green 2s infinite alternate;
+        }
+
+        .cell.highlight-queen::after {
+            content: '♛';
+            color: #28a745;
+            font-size: var(--font-icons);
+            font-weight: 900;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 20;
+            text-shadow: 0 0 5px white;
+            animation: pulse-instigator 0.8s infinite alternate;
+        }
+
+        .cell.highlight-chain {
+            outline: 3px solid #d9534f !important;
+            outline-offset: -3px;
+            z-index: 9;
+            animation: pulse-red 2s infinite;
+        }
+
+        .cell.highlight-chain::after {
+            content: '♛';
+            color: #d9534f;
+        }
+
+        .cell.blocked.highlight-logic.highlight-chain::after {
+            content: '♛';
+            color: #d9534f;
+            font-size: var(--font-icons);
+            font-weight: 900;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 20;
+            text-shadow: 0 0 5px white;
+            animation: pulse-instigator 0.8s infinite alternate;
+        }
+
+        .cell.ghost-blocked {
+            outline: 2px solid #d9534f !important;
+            outline-offset: -2px;
+        }
+
+        .cell.ghost-blocked::after {
+            content: '✕';
+            color: #d9534f;
+            font-size: var(--font-icons);
+            font-weight: bold;
+            position: absolute;
+            opacity: 0.7;
+        }
+
+        /* ============================================================
+   5. COORDINATES & LABELS
+   ============================================================ */
+        .labels-top {
+            display: flex;
+            margin-left: 30px;
+            height: 30px;
+        }
+
+        .labels-left {
+            display: flex;
+            flex-direction: column;
+            width: 30px;
+        }
+
+        .label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: var(--font-labels);
+            color: #444;
+            font-family: monospace;
+        }
+
+        .label-col {
+            width: var(--cell);
+            height: 30px;
+        }
+
+        .label-row {
+            height: var(--cell);
+            width: 30px;
+        }
+
+        /* ============================================================
+   6. NAVIGATION & TABS
+   ============================================================ */
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: -2px;
+            z-index: 10;
+            width: 95vw;
+            max-width: 800px;
+        }
+
+        .tab-btn {
+            padding: 15px 10px;
+            flex: 1;
+            font-size: var(--font-ui);
+            cursor: pointer;
+            background: #e0e0e0;
+            border: 2px solid #ccc;
+            border-bottom: none;
+            border-radius: 8px 8px 0 0;
+            font-weight: bold;
+            color: #666;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .tab-btn.active {
+            background: white;
+            border-color: #222;
+            color: #000;
+            padding-top: 12px;
+        }
+
+        .tab-btn:hover:not(.active):not(.disabled) {
+            background: #d8d8d8;
+            color: #333;
+        }
+
+        .tab-btn.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+            filter: grayscale(1);
+        }
+
+        .tab-content {
+            display: none;
+            width: 100%;
+            flex-direction: column;
+            align-items: center;
+            background: transparent;
+            padding-top: 20px;
+        }
+
+        .tab-content.active {
+            display: flex;
+        }
+
+        /* ============================================================
+   7. UI CONTROLS & BUTTONS
+   ============================================================ */
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .controls label {
+            font-size: var(--font-ui);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .controls-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+        }
+
+        /* Base Button Styling */
+        button {
+            flex: 1;
+            min-width: 120px;
+            min-height: var(--touch-target);
+            padding: 12px 15px;
+            font-size: var(--font-ui);
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            background: #fff;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: #f8f9fa;
+            border-color: #999;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        button:active:not(:disabled) {
+            transform: scale(0.96);
+            filter: brightness(90%);
+        }
+
+        /* Variant Buttons */
+        button.primary {
+            background: #000;
+            color: #fff;
+            border: none;
+        }
+
+        button.primary:hover:not(:disabled) {
+            background: #333;
+        }
+
+        button.audit {
+            background: #5a2d81;
+            color: #fff;
+            border: none;
+        }
+
+        button.audit:hover:not(:disabled) {
+            background: #462364;
+        }
+
+        .cancel-btn {
+            display: none;
+            background: #ffc107;
+            border: none;
+            color: #000;
+        }
+
+        .cancel-btn:hover:not(:disabled) {
+            background: #e0a800;
+        }
+
+        #applyBtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: #ccc !important;
+        }
+
+        #backBtn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* Inputs & Form Elements */
+        input[type="number"],
+        select {
+            height: var(--touch-target);
+            width: var(--input-width);
+            font-size: 16px !important;
+            text-align: center;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+            transition: opacity 0.2s;
+        }
+
+        .checkbox-label:hover {
+            opacity: 0.8;
+        }
+
+        .checkbox-label input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        /* ============================================================
+   8. STATUS, LOGS & FEEDBACK
+   ============================================================ */
+        #game-timer {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: var(--font-timer);
+            font-weight: bold;
+            min-width: 160px;
+            text-align: center;
+        }
+
+        #status {
+            font-weight: bold;
+            color: #007AFF;
+            margin-bottom: 5px;
+        }
+
+        #status-builder {
+            font-weight: bold;
+            color: #007AFF;
+            margin-bottom: 10px;
+        }
+
+        .log {
+            height: 220px;
+            font-size: var(--font-log);
+            padding: 15px;
+            border-radius: 10px;
+            overflow-y: auto;
+            overflow-x: auto;
+            border: 1px solid #ddd;
+            background: #fff;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+            width: 80dvw;
+        }
+
+        .log div {
+            margin-bottom: 12px;
+            line-height: 1.6;
+            display: block;
+        }
+
+        .log-error,
+        .log-success,
+        .log-logic {
+            display: inline-block;
+            font-size: var(--font-log) !important;
+            vertical-align: top;
+            box-sizing: border-box;
+        }
+
+        .log-error {
+            color: #d9534f;
+            font-weight: bold;
+            border-left: 4px solid #d9534f;
+            padding-left: 10px;
+            margin: 4px 0;
+        }
+
+        .log-success {
+            color: #28a745;
+            font-weight: bold;
+            background: #e8f5e9;
+            padding: 8px 12px;
+            border-radius: 6px;
+            text-align: center;
+            width: calc(100% - 20px);
+        }
+
+        .log-logic {
+            color: #020ef1;
+            font-weight: bold;
+            border-left: 4px solid #020ef1;
+            padding-left: 10px;
+            margin: 4px 0;
+        }
+
+        textarea#output {
+            width: 100%;
+            box-sizing: border-box;
+            height: 100px;
+            font-family: monospace;
+            font-size: 14px;
+            margin-top: 10px;
+            white-space: pre;
+            overflow-x: auto;
+            user-select: text;
+        }
+
+        /* ============================================================
+   9. COLOR PALETTE & REGIONS
+   ============================================================ */
+        #palette {
+            flex-direction: row !important;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        #palette.hidden {
+            display: none !important;
+        }
+
+        /* Region Color Classes */
+        .c0 {
+            background: var(--Purple);
+        }
+
+        .c1 {
+            background: var(--Orange);
+        }
+
+        .c2 {
+            background: var(--Blue);
+        }
+
+        .c3 {
+            background: var(--White);
+        }
+
+        .c4 {
+            background: var(--Red);
+        }
+
+        .c5 {
+            background: var(--Yellow);
+        }
+
+        .c6 {
+            background: var(--Green);
+        }
+
+        .c7 {
+            background: var(--Gray);
+        }
+
+        .c8 {
+            background: var(--Teal);
+        }
+
+        .c9 {
+            background: var(--Pink);
+        }
+
+        .c10 {
+            background: var(--Brown);
+        }
+
+        .c11 {
+            background: var(--Indigo);
+        }
+
+        .c12 {
+            background: var(--Lime);
+        }
+
+        .c13 {
+            background: var(--Cyan);
+        }
+
+        .c14 {
+            background: var(--Maroon);
+        }
+
+        .c15 {
+            background: var(--Olive);
+        }
+
+        /* ============================================================
+   10. INTERFACE SWITCHES
+   ============================================================ */
+        .switch-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+            font-size: var(--font-ui);
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: #007AFF;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(24px);
+        }
+
+        input:disabled+.slider {
+            background-color: #e0e0e0;
+            cursor: not-allowed;
+        }
+
+        /* ============================================================
+   11. ANIMATIONS
+   ============================================================ */
+        @keyframes pulse-blue {
+            0% {
+                box-shadow: inset 0 0 5px #020ef1;
+            }
+
+            100% {
+                box-shadow: inset 0 0 15px #020ef1;
+            }
+        }
+
+        @keyframes pulse-green {
+            0% {
+                box-shadow: inset 0 0 5px #28a745;
+            }
+
+            100% {
+                box-shadow: inset 0 0 15px #28a745;
+            }
+        }
+
+        @keyframes pulse-red {
+            0% {
+                box-shadow: inset 0 0 5px #d9534f;
+            }
+
+            100% {
+                box-shadow: inset 0 0 15px #d9534f;
+            }
+        }
+
+        @keyframes pulse-instigator {
+            from {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+
+            to {
+                transform: translate(-50%, -50%) scale(1.2);
+                opacity: 0.8;
+            }
+        }
+
+        /* ============================================================
+   12. DESKTOP OPTIMIZATION (min-width: 1024px)
+   ============================================================ */
+        @media (min-width: 1024px) {
+            :root {
+                --label-size: 35px;
+                --overhead: 50px;
+                --cell: min(55px, calc((75vh - var(--overhead)) / var(--size, 10)));
+                --input-width: 150px;
+            }
+
+            .panel {
+                width: 800px !important;
+            }
+
+            .log {
+                width: calc((75vh - var(--overhead))) !important;
+            }
+        }
+    </style>
+
+
+
+</head>
+
+<body>
+
+
+    <header class="header-section">
+        <h1>Peer To Peer Queens</h1>
+        <p>Play, challenge, and learn with friends.</p>
+        <a href="https://www.linkedin.com/in/rilhia/" target="_blank" class="author-link">
+            By Richard Hall 
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+        </a>
+    </header>
+
+
+
+    <nav class="tabs">
+        <button class="tab-btn active" onclick="switchTab('play-tab')">Play</button>
+        <button class="tab-btn" onclick="switchTab('builder-tab')">Build</button>
+        <button class="tab-btn" onclick="switchTab('solver-tab')">Solve</button>
+    </nav>
+
+    <div id="play-tab" class="tab-content active">
+        <div class="module">
+            <div class="controls-bar">
+                <div id="game-timer">00:00:00</div>
+                <button onclick="undoMove()" id="backBtn">◀ Back</button>
+                <button onclick="startCountdown()" id="startBtn" class="primary">▶ Start Game</button>
+                <button onclick="resetPlayGame()" id="resetBtn">↺ Reset</button>
+            </div>
+        </div>
+
+        <div class="board-wrapper">
+            <div id="play-cols" class="labels-top"></div>
+
+            <div style="display: flex;">
+                <div id="play-rows" class="labels-left"></div>
+
+                <div class="grid-area-container" style="position: relative;">
+                    <div id="countdown-overlay" style="display:none;">♛</div>
+                    <div id="play-grid"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="module">
+            <div id="status" style="font-weight:bold; color: #007AFF; margin-bottom: 5px;">Ready</div>
+            <div id="play-log" class="log">Waiting for start...</div>
+        </div>
+    </div>
+
+
+
+    <div id="builder-tab" class="tab-content">
+        <div class="module">
+            <div class="controls-bar">
+                <label>Size:
+                    <select id="boardSize" onchange="setBoardSize(this.value)">
+                        <option value="5">5x5</option>
+                        <option value="6">6x6</option>
+                        <option value="7">7x7</option>
+                        <option value="8">8x8</option>
+                        <option value="9">9x9</option>
+                        <option value="10" selected>10x10</option>
+                    </select>
+                </label>
+                <label>Difficulty:
+                    <select id="targetDifficulty">
+                        <option value="">Any</option>
+                        <option value="Easy">Easy</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Hard">Hard</option>
+                        <option value="Super Hard">Super Hard</option>
+                    </select>
+                </label>
+                <div class="switch-container">
+                    <span>Manual Edit</span>
+                    <label class="switch">
+                        <input type="checkbox" id="manualEditToggle" onchange="toggleManualMode(this.checked)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div id="palette" class="hidden module"></div>
+
+        <div class="board-wrapper">
+            <div id="builder-cols" class="labels-top"></div>
+            <div style="display: flex;">
+                <div id="builder-rows" class="labels-left"></div>
+                <div id="builder-grid" class="grid-frame"></div>
+            </div>
+        </div>
+
+        <div class="module">
+            <div id="status-builder" style="font-weight:bold; color: #007AFF; margin-bottom: 10px;">Mode: Manual Design
+            </div>
+
+            <div class="btn-row">
+                <button onclick="runFlow()" id="mainBtn" class="primary">Generate Random</button>
+                <button onclick="cancelGeneration()" id="cancelBtn" class="cancel-btn">Cancel</button>
+                <button onclick="testManualBuild()" class="audit">Test Build</button>
+
+                <label class="checkbox-label">
+                    <input type="checkbox" id="showQueensOnTest"> Show Solutions
+                </label>
+
+                <button onclick="initManualBuild()">Clear</button>
+            </div>
+
+            <textarea id="output" placeholder="Board JSON..."></textarea>
+            <div class="btn-row" style="margin-top: 10px;">
+                <button id="applyBtn" onclick="applyToTabs()" disabled>Apply to Tabs</button>
+                <button onclick="sharePuzzle()">✉ Share</button>
+                <button onclick="importLayout()">📥 Import</button>
+            </div>
+        </div>
+
+        <div class="module">
+            <div id="builder-log" class="log"></div>
+        </div>
+    </div>
+
+    <div id="solver-tab" class="tab-content">
+        <div class="board-wrapper">
+            <div id="solver-cols" class="labels-top"></div>
+            <div style="display: flex;">
+                <div id="solver-rows" class="labels-left"></div>
+                <div id="solver-grid"></div>
+            </div>
+        </div>
+
+        <div class="module">
+            <div class="btn-row">
+                <button onclick="solveStep(-1)">◀ Back</button>
+                <button id="solverNextBtn" class="primary" onclick="solveStep(1)">Next Step ▶</button>
+                <button onclick="reset('solver')">Reset</button>
+            </div>
+        </div>
+
+        <div class="module">
+            <div style="align-self: flex-start; font-weight: bold; margin-bottom: 5px;">Reasoning Log:</div>
+            <div id="solver-log" class="log"></div>
+        </div>
+    </div>
+
+
+<script id="shared-logic">
+    /** * SHARED LOGIC: Foundational state management, rendering, and core rules.
+     * This section acts as the 'Source of Truth' for all tabs.
+     **/
+
+    // --- Global Configuration & Initial State ---
+    
+    /** Default board layout used for initialization and testing */
+    let activeLayout = [
+        [1, 1, 1, 1, 1, 1, 1, 2, 0, 2],
+        [1, 1, 1, 1, 1, 1, 2, 2, 2, 2],
+        [3, 1, 4, 4, 4, 5, 2, 2, 1, 1],
+        [1, 1, 4, 4, 5, 5, 2, 1, 1, 1],
+        [1, 1, 1, 4, 5, 5, 1, 1, 1, 1],
+        [1, 1, 1, 5, 5, 5, 1, 7, 7, 1],
+        [6, 6, 1, 1, 1, 5, 1, 7, 7, 1],
+        [6, 6, 1, 8, 1, 1, 1, 9, 7, 1],
+        [6, 6, 1, 8, 8, 8, 9, 9, 7, 1],
+        [1, 1, 1, 8, 8, 8, 9, 9, 7, 7]
+    ];
+
+    /** The working board used in the Builder tab */
+    let layout = JSON.parse(JSON.stringify(activeLayout));
+    /** Backup of the last layout that passed a uniqueness check */
+    let lastGoodLayout = JSON.parse(JSON.stringify(activeLayout));
+    /** Dimension of the N x N grid */
+    let N = activeLayout.length;
+    /** Interactive board state containing history and cell statuses */
+    let state = [];
+    /** Validation flags to prevent switching tabs with broken boards */
+    let isBoardValidated = true;
+    let isBoardLocked = false;
+    /** Global reference to the active log element */
+    let logEl = document.getElementById('play-log');
+    /** Array used for color-region lookups [0, 1, 2... N-1] */
+    let colorsArray = [];
+    /** Game session state */
+    let isGameActive = false;
+
+    // --- Tab Navigation & Synchronization ---
+
+    /** Prevents tab switching if the user is in the middle of a generation or manual edit */
+    function setTabsLocked(locked) {
+        isBoardLocked = locked;
+        const btns = document.querySelectorAll('.tab-btn');
+        btns[0].classList.toggle('disabled', locked); // Play Game
+        btns[2].classList.toggle('disabled', locked); // Auto-Solver
+    }
+
+    /** Orchestrates tab transitions and resets specific logic for the target tab */
+    function switchTab(tabId) {
+        if (isBoardLocked && (tabId === 'play-tab' || tabId === 'solver-tab')) {
+            addLog("Tabs Locked: You must validate and 'Apply' the board in the Builder first.", "error");
+            return;
+        }
+
+        document.querySelectorAll('.tab-content, .tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        if (event) event.currentTarget.classList.add('active');
+
+        const prefix = tabId.replace('-tab', '');
+        logEl = document.getElementById(`${prefix}-log`);
+
+        if (typeof initSolverMemory === "function") initSolverMemory();
+        reset(prefix);
+    }
+
+    // --- Rendering Engine ---
+
+    /** Maps color IDs to human-readable names for logging */
+    function getColorName(id) {
+        return ["Purple", "Orange", "Blue", "White", "Red", "Yellow", "Green", "Gray", "Teal", "Pink", "Brown", "Indigo", "Lime", "Cyan", "Maroon", "Olive"][id];
+    }
+
+    /** Prepares a blank slate layout for the builder based on user selection */
+    function setBoardSize(value) {
+        let newLayout = Array.from({ length: value }, () => Array(value).fill(-1));
+        render("builder", newLayout);
+    }
+
+    /** Universal DOM renderer for Play, Solver, and Builder grids */
+    function render(tabId, board = null) {
+        const grid = document.getElementById(tabId + '-grid');
+        const colContainer = document.getElementById(tabId + '-cols');
+        const rowContainer = document.getElementById(tabId + '-rows');
+
+        if (!grid) return;
+        grid.innerHTML = '';
+        if (colContainer) colContainer.innerHTML = '';
+        if (rowContainer) rowContainer.innerHTML = '';
+
+        let size = board ? board.length : state.length;
+        document.documentElement.style.setProperty('--size', size);
+        grid.style.setProperty('--size', size);
+
+        // Generate dynamic labels (1, 2, 3...)
+        if (colContainer && rowContainer) {
+            for (let i = 0; i < size; i++) {
+                const cLabel = document.createElement('div');
+                cLabel.className = 'label label-col';
+                cLabel.innerText = i + 1;
+                colContainer.appendChild(cLabel);
+
+                const rLabel = document.createElement('div');
+                rLabel.className = 'label label-row';
+                rLabel.innerText = i + 1;
+                rowContainer.appendChild(rLabel);
+            }
+        }
+
+        // Context-aware cell generation
+        if (tabId === 'builder') {
+            if (board) {
+                board.flat().forEach((v, index) => {
+                    const c = document.createElement('div');
+                    c.className = `cell c${v} empty`;
+                    c.dataset.r = Math.floor(index / size);
+                    c.dataset.c = index % size;
+                    grid.appendChild(c);
+                });
+            }
+        } else if (tabId === 'solver' || tabId === 'play') {
+            state.flat().forEach(cell => {
+                const d = document.createElement('div');
+                d.className = `cell c${cell.color} ${cell.status.at(-1)}`;
+                d.dataset.r = cell.r;
+                d.dataset.c = cell.c;
+                grid.appendChild(d);
+            });
+        }
+    }
+
+    /** Global state reset - populates state with the currently activeLayout */
+    function reset(gridType, keepLog = false) {
+        state = activeLayout.map((row, r) => row.map((col, c) => ({
+            r, c, color: col, status: ['empty'], clicked: []
+        })));
+
+        if (!keepLog) {
+            if (logEl) logEl.innerHTML = "<div>> System Ready.</div>";
+        }
+        colorsArray = [...Array(state.length).keys()];
+
+        if (gridType === 'builder') {
+            if (typeof renderBuilder === "function") renderBuilder();
+            const toggle = document.getElementById('manualEditToggle');
+            const palette = document.getElementById('palette');
+            if (toggle && palette) {
+                if (toggle.checked) {
+                    palette.classList.remove('hidden');
+                    if (typeof createPalette === "function") createPalette(layout.length);
+                } else {
+                    palette.classList.add('hidden');
+                }
+            }
+        } else {
+            render(gridType, layout);
+        }
+
+        // Reset UI-specific elements (Overlays and Buttons)
+        if (gridType === 'play') {
+            const overlay = document.getElementById('countdown-overlay');
+            const grid = document.getElementById('play-grid');
+            if (overlay) {
+                overlay.style.display = 'flex';
+                overlay.innerText = "♛";
+            }
+            if (grid) grid.classList.add('hidden');
+            isGameActive = false;
+        }
+
+        if (gridType === 'solver') {
+            const nextBtn = document.getElementById('solverNextBtn');
+            if (nextBtn) {
+                nextBtn.disabled = false;
+                nextBtn.style.opacity = "1";
+            }
+        }
+    }
+
+    // --- Core Logic Rules (Constraint Satisfaction) ---
+
+    /** * Evaluates the entire board against standard Queen rules:
+     * 1. One Queen per Row/Column.
+     * 2. One Queen per Color Region.
+     * 3. No touching Queens (including diagonals).
+     * 4. Starvation checks (identifying when a region/row/col has no available moves).
+     */
+    function checkState(gs) {
+        let errors = [];
+        let conflictCoords = new Set();
+        let starvation = false;
+        let starvationRegion = null;
+        let starvationRow = null;
+        let starvationColumn = null;
+        const size = gs.length;
+        const allCells = gs.flat();
+        const queens = allCells.filter(c => c.status.at(-1) === 'queen');
+
+        // Check Row/Column Conflicts
+        for (let i = 0; i < size; i++) {
+            const rowQueens = queens.filter(q => q.r === i);
+            if (rowQueens.length > 1) {
+                errors.push(`Multiple queens in Row ${i + 1}.`);
+                rowQueens.forEach(q => conflictCoords.add(`${q.r},${q.c}`));
+            }
+            const colQueens = queens.filter(q => q.c === i);
+            if (colQueens.length > 1) {
+                errors.push(`Multiple queens in Column ${i + 1}.`);
+                colQueens.forEach(q => conflictCoords.add(`${q.r},${q.c}`));
+            }
+        }
+
+        // Check Color Region Conflicts
+        const allColorIds = [...new Set(allCells.map(c => c.color))];
+        allColorIds.forEach(colorId => {
+            const regionQueens = queens.filter(q => q.color === colorId);
+            if (regionQueens.length > 1) {
+                errors.push(`Multiple queens in the ${getColorName(colorId)} region.`);
+                regionQueens.forEach(q => conflictCoords.add(`${q.r},${q.c}`));
+            }
+        });
+
+        // Check Adjacency (Diagonals and Orthogonals)
+        for (let i = 0; i < queens.length; i++) {
+            for (let j = i + 1; j < queens.length; j++) {
+                const q1 = queens[i];
+                const q2 = queens[j];
+                if (Math.abs(q1.r - q2.r) <= 1 && Math.abs(q1.c - q2.c) <= 1) {
+                    errors.push(`Queens at (${q1.r + 1},${q1.c + 1}) and (${q2.r + 1},${q2.c + 1}) are touching.`);
+                    conflictCoords.add(`${q1.r},${q1.c}`);
+                    conflictCoords.add(`${q2.r},${q2.c}`);
+                }
+            }
+        }
+
+        // Starvation: Check for regions that no longer have valid spaces
+        allColorIds.forEach(id => {
+            const region = allCells.filter(c => c.color === id);
+            if (!region.some(c => c.status.at(-1) === 'queen') && !region.some(c => c.status.at(-1) === 'empty')) {
+                errors.push(`Impossible Region: ${getColorName(id)} has no room for a queen.`);
+                region.forEach(c => conflictCoords.add(`${c.r},${c.c}`));
+                starvation = true;
+                starvationRegion = id;
+            }
+        });
+
+        // Starvation: Check for rows that no longer have valid spaces
+        for (let r = 0; r < size; r++) {
+            const row = gs[r];
+            if (!row.some(c => c.status.at(-1) === 'queen') && !row.some(c => c.status.at(-1) === 'empty')) {
+                errors.push(`Impossible Row: Row ${r + 1} has no room for a queen.`);
+                row.forEach(c => conflictCoords.add(`${c.r},${c.c}`));
+                starvation = true;
+                starvationRow = r;
+            }
+        }
+
+        // Starvation: Check for columns that no longer have valid spaces
+        for (let c = 0; c < size; c++) {
+            const col = gs.map(row => row[c]);
+            if (!col.some(cell => cell.status.at(-1) === 'queen') && !col.some(cell => cell.status.at(-1) === 'empty')) {
+                errors.push(`Impossible Column: Column ${c + 1} has no room for a queen.`);
+                col.forEach(cell => conflictCoords.add(`${cell.r},${cell.c}`));
+                starvation = true;
+                starvationColumn = c;
+            }
+        }
+
+        return { isValid: errors.length === 0, errors, conflictCoords, starvation, starvationRegion, starvationRow, starvationColumn };
+    }
+
+    /** Quick check: would placing a queen at r,c block target tr,tc based on rules? */
+    function wouldBlock(s, r, c, tr, tc, color) {
+        if (r === tr || c === tc) return true; // Row/Col
+        if (s[tr][tc].color === color) return true; // Region
+        if (Math.abs(r - tr) <= 1 && Math.abs(c - tc) <= 1) return true; // Adjacency
+        return false;
+    }
+
+    /** Applies 'blocked' status to all cells invalidated by a queen placement */
+    function applyConstraints(s, r, c, color) {
+        let blockedCoords = [];
+        s.flat().forEach(cell => {
+            if (cell.status.at(-1) === 'empty' && wouldBlock(s, r, c, cell.r, cell.c, color)) {
+                cell.status.push('blocked');
+                blockedCoords.push({ r: cell.r, c: cell.c });
+            }
+        });
+        return blockedCoords;
+    }
+
+    /** Identifies cells that MUST be queens because they are the last available spot in a row/col/region */
+    function getForcedQueens(s) {
+        let forced = [];
+        for (let i = 0; i < s.length; i++) {
+            const groups = [s.flat().filter(c => c.color === i), s[i], s.map(row => row[i])];
+            for (let group of groups) {
+                const empty = group.filter(c => c.status.at(-1) === 'empty');
+                if (empty.length === 1 && !group.some(c => c.status.at(-1) === 'queen')) {
+                    const target = empty[0];
+                    if (!forced.find(q => q.r === target.r && q.c === target.c)) forced.push(target);
+                }
+            }
+        }
+        return forced;
+    }
+
+    // --- Logging & External Interfaces ---
+
+    /** Thread-safe logging to the active log panel */
+    function addLog(msg, type) {
+        let colorClass;
+        if (type === 'error') colorClass = 'log-error';
+        else if (type === 'success') colorClass = 'log-success';
+        else if (type === 'logic') colorClass = 'log-logic';
+
+        const div = document.createElement('div');
+        div.innerHTML = `<span class="${colorClass || ''}">${msg}</span>`;
+        if (logEl) logEl.insertBefore(div, logEl.firstChild);
+    }
+
+    function clearLog() {
+        if (logEl) logEl.innerHTML = "";
+    }
+
+    /** Encodes current board JSON into Base64 for URL sharing */
+    async function sharePuzzle() {
+        const boardJson = document.getElementById('output').value;
+        if (!boardJson || boardJson === "[]") return addLog("No board to share!", "error");
+        const encodedBoard = btoa(unescape(encodeURIComponent(boardJson)));
+        const baseUrl = window.location.href.split('?')[0];
+        const shareUrl = `${baseUrl}?board=${encodedBoard}`;
+
+        if (navigator.share) {
+            try {
+                await navigator.share({ title: "Queens Logic Challenge", text: "Try this puzzle!", url: shareUrl });
+                addLog("Share sheet opened.", "success");
+            } catch (err) { copyToClipboard(shareUrl); }
+        } else { copyToClipboard(shareUrl); }
+    }
+
+    /** Fallback clipboard logic for local/unsecured environments */
+    function copyToClipboard(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(() => addLog("Link copied!", "success"))
+                .catch(() => fallbackCopy(text));
+        } else { fallbackCopy(text); }
+    }
+
+    function fallbackCopy(text) {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        document.body.appendChild(textArea);
+        textArea.focus(); textArea.select();
+        try {
+            if (document.execCommand('copy')) addLog("Link copied (fallback)!", "success");
+            else addLog("Please copy JSON manually.", "error");
+        } catch (err) { addLog("Copy failed.", "error"); }
+        document.body.removeChild(textArea);
+    }
+
+    /** Formats the internal board array for the Builder's raw text area */
+    function outputArray(boardData) {
+        const out = document.getElementById('output');
+        if (out) {
+            out.value = "[\n" + boardData.map(row => `  [${row.join(',')}]`).join(",\n") + "\n]";
+        }
+    }
+
+    /** Entry Point: Handles URL parameters and initial render */
+    window.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const boardData = urlParams.get('board');
+        if (boardData) {
+            try {
+                const decodedJson = decodeURIComponent(escape(atob(boardData)));
+                const sharedLayout = JSON.parse(decodedJson);
+                if (Array.isArray(sharedLayout)) {
+                    activeLayout = sharedLayout;
+                    lastGoodLayout = JSON.parse(JSON.stringify(sharedLayout));
+                    layout = JSON.parse(JSON.stringify(sharedLayout));
+                    N = sharedLayout.length;
+                    const sizeInput = document.getElementById('boardSize');
+                    if (sizeInput) sizeInput.value = N;
+                    addLog(`URL Puzzle Loaded: ${N}x${N}`, "success");
+                }
+            } catch (e) { addLog("Invalid puzzle link.", "error"); }
+        }
+        outputArray(activeLayout);
+        reset('play');
+    });
+</script>
+
+<script id="solver-logic">
+    /**
+     * SOLVER LOGIC: Heuristic-based deduction engine.
+     * Uses prioritized strategies to solve the puzzle step-by-step.
+     **/
+
+    let solverTape = [];
+    let solverIndex = -1;
+
+    /** Wipes deduction history when a new board is loaded */
+    function initSolverMemory() {
+        solverTape = [];
+        solverIndex = -1;
+        const nextBtn = document.getElementById('solverNextBtn');
+        if (nextBtn) {
+            nextBtn.disabled = false;
+            nextBtn.style.opacity = "1";
+        }
+        const solverLog = document.getElementById('solver-log');
+        if (solverLog) solverLog.innerHTML = "<div>> Solver Memory Initialized.</div>";
+    }
+
+    /** Mathematical helper for Subset analysis */
+    function getCombinations(array, size) {
+        const result = [];
+        function helper(start, combo) {
+            if (combo.length === size) { result.push([...combo]); return; }
+            for (let i = start; i < array.length; i++) { combo.push(array[i]); helper(i + 1, combo); combo.pop(); }
+        }
+        helper(0, []);
+        return result;
+    }
+
+    // --- Deduction Engines (Heuristics) ---
+
+    /** * Strategy: Locked Subsets (Naked N-tuples)
+     * If N colors can only be placed in N rows/cols, then no other colors can be in those lines.
+     */
+    function internalLockedSubsetElimination(s, maxSize = 4) {
+        let sizes = Array.from({ length: maxSize - 1 }, (_, i) => i + 2).sort(() => Math.random() - 0.5);
+        for (let size of sizes) {
+            let tasks = [{ type: 'row', idx: colorsArray }, { type: 'col', idx: colorsArray }].sort(() => Math.random() - 0.5);
+            for (let task of tasks) {
+                let combinations = getCombinations(task.idx, size).sort(() => Math.random() - 0.5);
+                for (let indices of combinations) {
+                    const restrictedColors = [];
+                    for (let co = 0; co < s.length; co++) {
+                        const colorCells = s.flat().filter(cell => cell.color === co && cell.status.at(-1) === 'empty');
+                        const isRestricted = task.type === 'row'
+                            ? colorCells.length > 0 && colorCells.every(cell => indices.includes(cell.r))
+                            : colorCells.length > 0 && colorCells.every(cell => indices.includes(cell.c));
+                        if (isRestricted) restrictedColors.push(co);
+                    }
+                    if (restrictedColors.length === indices.length) {
+                        let currentElims = [];
+                        for (let lineIndex of indices) {
+                            for (let other = 0; other < s.length; other++) {
+                                const cell = task.type === 'row' ? s[lineIndex][other] : s[other][lineIndex];
+                                if (cell.status.at(-1) === 'empty' && !restrictedColors.includes(cell.color)) {
+                                    cell.status.push('blocked');
+                                    currentElims.push({ r: cell.r, c: cell.c });
+                                }
+                            }
+                        }
+                        if (currentElims.length > 0) return {
+                            type: 'logic', method: 'Subset',
+                            desc: `Subset Logic: ${restrictedColors.map(getColorName).join(', ')} locked in ${task.type}s ${indices.map(i => i + 1).join(',')}`,
+                            elims: currentElims
+                        };
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /** Strategy: Adjacency (Broken Regions)
+     * Marks a cell as blocked if placing a queen there would leave a neighboring color region with zero room.
+     */
+    function internalBlockImpossible(s) {
+        let coords = s.flat().filter(c => c.status.at(-1) === 'empty').sort(() => Math.random() - 0.5);
+        for (let cell of coords) {
+            let colors = colorsArray.sort(() => Math.random() - 0.5);
+            for (let colorID of colors) {
+                if (colorID === cell.color) continue;
+                const region = s.flat().filter(c => c.color === colorID);
+                if (region.some(c => c.status.at(-1) === 'queen')) continue;
+                const available = region.filter(c => c.status.at(-1) === 'empty');
+                if (available.length > 0 && available.every(t => wouldBlock(s, cell.r, cell.c, t.r, t.c, cell.color))) {
+                    cell.status.push('blocked');
+                    return { type: 'logic', method: 'Adjacency', desc: `Adjacency: Cell (${cell.r + 1},${cell.c + 1}) breaks ${getColorName(colorID)}`, elims: [{ r: cell.r, c: cell.c }] };
+                }
+            }
+        }
+        return null;
+    }
+
+    /** Strategy: Mutual Exclusion
+     * If every valid configuration of Region A and Region B blocks Cell X, then Cell X MUST be blocked.
+     */
+    function internalMutualExclusion(s) {
+        const regionIds = colorsArray;
+        const regionPairs = getCombinations(regionIds, 2).sort(() => Math.random() - 0.5);
+        for (const [id1, id2] of regionPairs) {
+            const cells1 = s.flat().filter(c => c.color === id1 && c.status.at(-1) === 'empty');
+            const cells2 = s.flat().filter(c => c.color === id2 && c.status.at(-1) === 'empty');
+            if (cells1.length === 0 || cells2.length === 0) continue;
+            const validConfigs = [];
+            for (const c1 of cells1) {
+                for (const c2 of cells2) {
+                    if (!wouldBlock(s, c1.r, c1.c, c2.r, c2.c, c1.color)) validConfigs.push([c1, c2]);
+                }
+            }
+            if (validConfigs.length === 0) continue;
+            const externalCells = s.flat().filter(c => c.status.at(-1) === 'empty' && c.color !== id1 && c.color !== id2);
+            for (const target of externalCells) {
+                const isAlwaysBlocked = validConfigs.every(([c1, c2]) => {
+                    return wouldBlock(s, c1.r, c1.c, target.r, target.c, c1.color) || wouldBlock(s, c2.r, c2.c, target.r, target.c, c2.color);
+                });
+                if (isAlwaysBlocked) {
+                    target.status.push('blocked');
+                    return { type: 'logic', method: 'Mutual Exclusion', desc: `Mutual Exclusion: ${getColorName(id1)} and ${getColorName(id2)} block (${target.r + 1},${target.c + 1}).`, elims: [{ r: target.r, c: target.c }] };
+                }
+            }
+        }
+        return null;
+    }
+
+    /** Strategy: Super-Intersection (Pointing/Reduction)
+     * Handles cases where a region is entirely contained within a line, or a line is restricted to a region.
+     */
+    function internalSuperIntersection(s) {
+        const allFoundMoves = [];
+        const tasks = [{ type: 'row' }, { type: 'col' }];
+        for (let task of tasks) {
+            for (let i = 0; i < s.length; i++) {
+                const lineCells = (task.type === 'row') ? s[i] : s.map(row => row[i]);
+                const emptyLineCells = lineCells.filter(c => c.status.at(-1) === 'empty');
+                if (emptyLineCells.length === 0) continue;
+                const colorsInLine = [...new Set(emptyLineCells.map(c => c.color))].sort((a, b) => a - b);
+                for (let colorID of colorsInLine) {
+                    const regionCells = s.flat().filter(c => c.color === colorID && c.status.at(-1) === 'empty');
+                    const intersection = emptyLineCells.filter(c => c.color === colorID);
+                    if (regionCells.length > 0 && regionCells.length === intersection.length) {
+                        let currentElims = [];
+                        emptyLineCells.forEach(lc => { if (lc.color !== colorID) currentElims.push({ r: lc.r, c: lc.c }); });
+                        if (currentElims.length > 0) allFoundMoves.push({ type: 'logic', method: 'Super-Intersection (Pointing)', impact: currentElims.length, desc: `${getColorName(colorID)} is trapped in ${task.type} ${i + 1}.`, elims: currentElims });
+                    }
+                    if (emptyLineCells.length > 0 && emptyLineCells.length === intersection.length) {
+                        let currentElims = [];
+                        regionCells.forEach(rc => { 
+                            const inLine = (task.type === 'row') ? (rc.r === i) : (rc.c === i);
+                            if (!inLine) currentElims.push({ r: rc.r, c: rc.c });
+                        });
+                        if (currentElims.length > 0) allFoundMoves.push({ type: 'logic', method: 'Super-Intersection (Reduction)', impact: currentElims.length, desc: `${task.type} ${i + 1} is restricted to ${getColorName(colorID)}.`, elims: currentElims });
+                    }
+                }
+            }
+        }
+        if (allFoundMoves.length > 0) {
+            allFoundMoves.sort((a, b) => b.impact - a.impact || a.method.localeCompare(b.method));
+            const bestMove = allFoundMoves[0];
+            bestMove.elims.forEach(e => s[e.r][e.c].status.push('blocked'));
+            return bestMove;
+        }
+        return null;
+    }
+
+    /** Strategy: Hidden Subsets
+     * Identifies when multiple rows/cols are collectively claimed by specific regions.
+     */
+    function internalHiddenRegionSubsets(s, maxSize = 4) {
+        const unsolvedRegions = colorsArray.filter(id => !s.flat().some(c => c.color === id && c.status.at(-1) === 'queen'));
+        const unsolvedRowIndices = [...Array(s.length).keys()].filter(r => !s[r].some(c => c.status.at(-1) === 'queen'));
+        const unsolvedColIndices = [...Array(s.length).keys()].filter(c => !s.map(row => row[c]).some(cell => cell.status.at(-1) === 'queen'));
+        for (let size = 2; size <= maxSize; size++) {
+            const rowCombos = getCombinations(unsolvedRowIndices, size);
+            for (let indices of rowCombos) {
+                const cellsInRows = indices.flatMap(r => s[r]).filter(c => c.status.at(-1) === 'empty');
+                const colorsInRows = [...new Set(cellsInRows.map(c => c.color))];
+                if (colorsInRows.length === size && colorsInRows.every(id => unsolvedRegions.includes(id))) {
+                    let currentElims = [];
+                    unsolvedRowIndices.filter(r => !indices.includes(r)).forEach(rIdx => {
+                        s[rIdx].forEach(cell => {
+                            if (cell.status.at(-1) === 'empty' && colorsInRows.includes(cell.color)) {
+                                if (s[rIdx].filter(c => c.color === cell.color && c.status.at(-1) === 'empty').length > 1) currentElims.push({ r: cell.r, c: cell.c });
+                            }
+                        });
+                    });
+                    if (currentElims.length > 0) {
+                        currentElims.forEach(e => s[e.r][e.c].status.push('blocked'));
+                        return { type: 'logic', method: 'Naked Row Subset', desc: `Rows ${indices.map(i => i + 1).join(',')} claim Colors ${colorsInRows.join(',')}.`, elims: currentElims };
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /** * Strategy: Contradiction Chain (Look-ahead)
+     * Hypothetically places a queen and simulates logical fallout. 
+     * If the board breaks, the hypothetical spot is proven to be 'blocked'.
+     */
+    function internalContradictionChain(s) {
+        const activeRegions = colorsArray.map(id => ({ id, cells: s.flat().filter(c => c.color === id && c.status.at(-1) === 'empty') }))
+            .filter(r => r.cells.length > 0 && !s.flat().some(c => c.color === r.id && c.status.at(-1) === 'queen'));
+        activeRegions.sort((a, b) => a.cells.length - b.cells.length);
+        for (let target of activeRegions) {
+            let survivors = [], failureReasons = [];
+            for (let testCell of target.cells) {
+                let ghostState = JSON.parse(JSON.stringify(s)), chainLog = [`Start (${testCell.r + 1}, ${testCell.c + 1})`];
+                ghostState[testCell.r][testCell.c].status.push('queen');
+                let initialGhostBlocked = applyConstraints(ghostState, testCell.r, testCell.c, testCell.color);
+                let result = simulateLogicalCollapse(ghostState, chainLog);
+                if (result.contradiction) {
+                    failureReasons.push(`• (${testCell.r + 1},${testCell.c + 1}): ${result.reason}`);
+                    s[testCell.r][testCell.c].status.push('blocked');
+                    return { type: 'logic', method: 'Chain', desc: `Blocked (${testCell.r + 1},${testCell.c + 1}). ${result.reason}.`, elims: [{ r: testCell.r, c: testCell.c }], chain: [{ r: testCell.r, c: testCell.c }, ...(result.chainCoords || [])], ghosts: [...initialGhostBlocked, ...(result.ghostBlocked || [])] };
+                } else survivors.push(testCell);
+            }
+            if (survivors.length === 1) {
+                const q = survivors[0]; s[q.r][q.c].status.push('queen');
+                return { type: 'logic', method: 'Unique Survivor', desc: `QUEEN at (${q.r + 1},${q.c + 1}) in ${getColorName(target.id)}.`, affected: [{ r: q.r, c: q.c }], elims: applyConstraints(s, q.r, q.c, q.color) };
+            }
+        }
+        return null;
+    }
+
+    /** Simulates the board's logical collapse after a hypothetical move */
+    function simulateLogicalCollapse(gs, log) {
+        let iterations = 0; const maxIterations = 80;
+        const chainCoords = [], ghostBlocked = [];
+        while (iterations < maxIterations) {
+            iterations++;
+            let checkStatus = checkState(gs);
+            if (!checkStatus.isValid) return { contradiction: true, reason: checkStatus.errors[0], causalLog: log, chainCoords, ghostBlocked };
+            let forced = getForcedQueens(gs);
+            if (forced.length > 0) {
+                let q = forced[0]; gs[q.r][q.c].status.push('queen');
+                gs.flat().forEach(cell => { if (cell.status.at(-1) === 'empty' && wouldBlock(gs, q.r, q.c, cell.r, cell.c, q.color)) { cell.status.push('blocked'); ghostBlocked.push({ r: cell.r, c: cell.c }); } });
+                chainCoords.push({ r: q.r, c: q.c }); log.push(`Forced (${q.r + 1}, ${q.c + 1})`); continue;
+            }
+            let advanced = internalSuperIntersection(gs) || internalLockedSubsetElimination(gs) || internalBlockImpossible(gs) || internalMutualExclusion(gs) || internalHiddenRegionSubsets(gs);
+            if (advanced) { log.push(advanced.method); if (advanced.affected) chainCoords.push(...advanced.affected); if (advanced.elims) advanced.elims.forEach(e => { if (!ghostBlocked.some(gb => gb.r === e.r && gb.c === e.c)) ghostBlocked.push({ r: e.r, c: e.c }); }); continue; }
+            break;
+        }
+        return { contradiction: false, causalLog: log, chainCoords, ghostBlocked };
+    }
+
+    // --- Interaction & Replay Tape ---
+
+    /** Steps forward or backward through the deduction tape */
+    function solveStep(direction) {
+        const nextBtn = document.getElementById('solverNextBtn');
+        document.querySelectorAll('.cell').forEach(el => el.classList.remove('highlight-logic', 'highlight-queen', 'highlight-chain', 'ghost-blocked', 'ghost-primary-blocked'));
+        if (direction === -1) {
+            if (solverIndex < 0) return false;
+            nextBtn.disabled = false; nextBtn.style.opacity = "1";
+            solverIndex--; reset('solver', true); clearLog();
+            const target = solverIndex; solverIndex = -1;
+            for (let i = 0; i <= target; i++) solveStep(1);
+            return true;
+        }
+        let logic; const isReplaying = solverIndex < solverTape.length - 1;
+        if (isReplaying) { solverIndex++; logic = solverTape[solverIndex]; }
+        else {
+            const possibleMoves = [];
+            const analyze = (fn) => { const result = fn(JSON.parse(JSON.stringify(state))); if (result) possibleMoves.push(result); };
+            let forced = getForcedQueens(state);
+            if (forced.length > 0) {
+                let q = forced[0]; logic = { type: 'queen', r: q.r, c: q.c, color: q.color, desc: `QUEEN: Forced ${getColorName(q.color)} at (${q.r + 1},${q.c + 1})`, affected: [{ r: q.r, c: q.c }], elims: applyConstraints(JSON.parse(JSON.stringify(state)), q.r, q.c, q.color) };
+            } else {
+                analyze(internalSuperIntersection); analyze(internalBlockImpossible); analyze(internalLockedSubsetElimination); analyze(internalMutualExclusion); analyze(internalHiddenRegionSubsets);
+                if (possibleMoves.length === 0) analyze(internalContradictionChain);
+                if (possibleMoves.length > 0) { possibleMoves.sort((a, b) => ((b.elims?.length || 0) + (b.type === 'queen' ? 100 : 0)) - ((a.elims?.length || 0) + (a.type === 'queen' ? 100 : 0))); logic = possibleMoves[0]; }
+            }
+            if (logic) { solverTape.push(logic); solverIndex++; }
+        }
+        if (logic) {
+            if (logic.type === 'queen' || logic.method === 'Unique Survivor') { const q = (logic.type === 'queen') ? logic : logic.affected[0]; state[q.r][q.c].status.push('queen'); applyConstraints(state, q.r, q.c, q.color); }
+            else if (logic.elims) logic.elims.forEach(c => state[c.r][c.c].status.push('blocked'));
+            addLog(logic.desc, (logic.type === 'queen' || logic.method === 'Unique Survivor') ? 'success' : 'logic');
+            render('solver'); applyForensicHighlights(logic);
+            if (state.flat().filter(c => c.status.at(-1) === 'queen').length === activeLayout.length) { addLog("✨ Puzzle Fully Solved!", "success"); nextBtn.disabled = true; nextBtn.style.opacity = "0.5"; }
+            return true;
+        }
+        if (direction === 1) addLog("No further logical steps found.", "logic");
+        return false;
+    }
+
+    /** UI Layer: Applies visual highlighting for the solver's reasoning steps */
+    function applyForensicHighlights(logic) {
+        if (!logic) return;
+        const gridID = "#solver-grid";
+        if (logic.affected) logic.affected.forEach(c => {
+            const el = document.querySelector(`${gridID} .cell[data-r="${c.r}"][data-c="${c.c}"]`);
+            const className = (logic.type === 'queen' || logic.method === 'Unique Survivor') ? 'highlight-queen' : 'highlight-logic';
+            if (el) el.classList.add(className);
+        });
+        if (logic.elims) logic.elims.forEach(c => {
+            const el = document.querySelector(`${gridID} .cell[data-r="${c.r}"][data-c="${c.c}"]`);
+            if (el) { el.classList.add('highlight-logic'); if (logic.chain && logic.chain.length > 0 && c.r === logic.chain[0].r && c.c === logic.chain[0].c) el.classList.add('ghost-primary-blocked'); }
+        });
+        if (logic.chain) logic.chain.forEach(c => { const el = document.querySelector(`${gridID} .cell[data-r="${c.r}"][data-c="${c.c}"]`); if (el) el.classList.add('highlight-chain'); });
+        if (logic.ghosts) logic.ghosts.forEach(c => { const el = document.querySelector(`${gridID} .cell[data-r="${c.r}"][data-c="${c.c}"]`); if (el && !el.classList.contains('ghost-primary-blocked') && !el.classList.contains('queen')) el.classList.add('ghost-blocked'); });
+    }
+
+    window.onload = () => reset('solver');
+</script>
+
+<script id="builder-logic">
+    /**
+     * BUILDER LOGIC: Procedural generation and manual grid editing.
+     * Uses a 'Greedy Snakes' algorithm for organic region growth.
+     **/
+
+    let isManualEditActive = false;
+    let stopFlowRequested = false;
+    let selectedBuilderColor = 0;
+    let isBuilderPainting = false;
+
+    /** Toggles the manual palette and touch-to-paint controls */
+    function toggleManualMode(active) {
+        const palette = document.getElementById('palette');
+        isManualEditActive = active;
+        if (active) {
+            setTabsLocked(true);
+            palette.classList.remove('hidden');
+            createPalette(N); renderBuilder();
+            addLog("Manual Editing Enabled. Tabs locked.", "logic");
+        } else {
+            palette.classList.add('hidden'); renderBuilder();
+            addLog("Manual Editing Disabled.", "logic");
+        }
+    }
+
+    function unlockManualSwitch() { document.getElementById('manualEditToggle').disabled = false; }
+
+    /** Terminates the random generation loop immediately */
+    function cancelGeneration() {
+        stopFlowRequested = true;
+        const cancelBtn = document.getElementById('cancelBtn');
+        const mainBtn = document.getElementById('mainBtn');
+        cancelBtn.style.display = "none"; mainBtn.disabled = false;
+        outputArray(layout); createPalette(N); renderBuilder(); unlockManualSwitch();
+        document.getElementById('status-builder').innerText = "Mode: Generation Cancelled";
+        addLog("Generation cancelled.", "error");
+    }
+
+    /** Forces a re-validation test before the user can leave the builder tab */
+    function markBoardAsDirty() {
+        isBoardValidated = false; setTabsLocked(true);
+        document.getElementById('applyBtn').disabled = true;
+        const status = document.getElementById('status-builder');
+        status.innerText = "Mode: Editing (Test Required)"; status.style.color = "#ff9800";
+    }
+
+    /** Paint tool for manual design mode */
+    function paintCell(element, r, c) {
+        if (!isManualEditActive || layout[r][c] === selectedBuilderColor) return;
+        layout[r][c] = selectedBuilderColor;
+        element.className = `cell c${selectedBuilderColor}`;
+        updateBuilderOutput(); markBoardAsDirty();
+    }
+
+    /** Logic Check: Ensures board is connected and has exactly one solution */
+    function testManualBuild(showLog = true) {
+        renderBuilder();
+        const solutions = findTwoSolutions(layout, N, 2);
+        let connected = true;
+        for (let i = 0; i < N; i++) { if (!checkConnectivity(layout, i, N)) { connected = false; break; } }
+        const showQueens = document.getElementById('showQueensOnTest').checked;
+        if (solutions.length === 1 && connected) {
+            if (showLog) addLog("VALIDATION SUCCESS.", "success");
+            if (showQueens) displayQueensOnBuilder(solutions);
+            isBoardValidated = true; document.getElementById('applyBtn').disabled = false;
+        } else {
+            isBoardValidated = false; document.getElementById('applyBtn').disabled = true;
+            if (showLog) {
+                if (!connected) addLog("VALIDATION FAILED: Fragmented.", "error");
+                else if (solutions.length === 0) addLog("VALIDATION FAILED: No solutions.", "error");
+                else addLog(`VALIDATION FAILED: ${solutions.length} solutions.`, "error");
+            }
+            if (showQueens && solutions.length > 0) displayQueensOnBuilder(solutions);
+        }
+    }
+
+    /** Push the builder's draft layout to the global activeLayout */
+    function applyToTabs() {
+        if (!isBoardValidated) return;
+        activeLayout = JSON.parse(JSON.stringify(layout));
+        lastGoodLayout = JSON.parse(JSON.stringify(layout));
+        setTabsLocked(false); document.getElementById('applyBtn').disabled = true;
+        addLog("Board applied.", "success");
+    }
+
+    /** Main Loop: Finds a valid seed and mutates it until a unique puzzle is found */
+    async function runFlow() {
+        stopFlowRequested = false; setTabsLocked(true);
+        const toggle = document.getElementById('manualEditToggle');
+        toggle.checked = false; toggle.disabled = true; toggleManualMode(false);
+        N = parseInt(document.getElementById('boardSize').value);
+        const btn = document.getElementById('mainBtn'); const cancelBtn = document.getElementById('cancelBtn');
+        btn.disabled = true; cancelBtn.style.display = "inline-block";
+        let queenSeed = findStrongQueenSeed(N);
+        let currentBoard = growGreedySnakes(queenSeed, N);
+        layout = currentBoard; renderBuilder();
+        let mutationAttempts = 0, mutationsTried = 0;
+        while (mutationAttempts < 1000000) {
+            if (stopFlowRequested) return;
+            mutationAttempts++;
+            const solutions = findTwoSolutions(currentBoard, N);
+            if (solutions.length === 1) {
+                let diff = assessDifficulty(currentBoard);
+                if (!document.getElementById('targetDifficulty').value || diff === document.getElementById('targetDifficulty').value) {
+                    layout = currentBoard; renderBuilder(); outputArray(layout);
+                    addLog(`Success! Found ${diff} board.`, 'success'); break;
+                }
+            }
+            let nextBoard = solutions.length >= 2 ? mutateBoard(currentBoard, solutions[0], solutions[1], N, mutationsTried) : null;
+            if (nextBoard && (mutationAttempts % 100 !== 0)) { currentBoard = nextBoard; layout = currentBoard; renderBuilder(); mutationsTried++; }
+            else { queenSeed = findStrongQueenSeed(N); currentBoard = growGreedySnakes(queenSeed, N); layout = currentBoard; renderBuilder(); mutationsTried = 0; }
+            await new Promise(r => setTimeout(r, N > 12 ? 50 : 10));
+        }
+        document.getElementById('status-builder').innerText = "Board Finalized";
+        btn.disabled = false; cancelBtn.style.display = "none"; unlockManualSwitch();
+    }
+
+    /** Simulated solve to determine difficulty tier */
+    function assessDifficulty(boardLayout) {
+        let testState = boardLayout.map((row, r) => row.map((col, c) => ({ r, c, color: col, status: ['empty'] })));
+        let peakTier = 0; const size = testState.length;
+        searchLoop: while (true) {
+            if (testState.flat().filter(c => c.status.at(-1) === 'queen').length === size) return ["Easy", "Medium", "Hard", "Super Hard"][peakTier];
+            let result;
+            let forced = getForcedQueens(testState);
+            if (forced.length > 0) { let q = forced[0]; testState[q.r][q.c].status.push('queen'); applyConstraints(testState, q.r, q.c, q.color); continue searchLoop; }
+            if (result = internalSuperIntersection(testState)) { peakTier = Math.max(peakTier, 0); continue searchLoop; }
+            if (result = internalBlockImpossible(testState)) { peakTier = Math.max(peakTier, 1); continue searchLoop; }
+            if (result = internalLockedSubsetElimination(testState, 3)) { peakTier = Math.max(peakTier, 1); continue searchLoop; }
+            if (result = internalMutualExclusion(testState)) { peakTier = Math.max(peakTier, 2); continue searchLoop; }
+            if (result = internalHiddenRegionSubsets(testState, 3)) { peakTier = Math.max(peakTier, 2); continue searchLoop; }
+            if (result = internalLockedSubsetElimination(testState, 4)) { peakTier = Math.max(peakTier, 2); continue searchLoop; }
+            if (result = internalContradictionChain(testState)) { peakTier = Math.max(peakTier, 3); continue searchLoop; }
+            break;
+        }
+        return "Impossible/Extreme";
+    }
+
+    /** Finds a valid Queen solution using standard backtracking */
+    function findRandomNQueens(n) {
+        const queens = [];
+        const isSafe = (r, c) => { for (let q of queens) if (q.c === c || (Math.abs(q.r - r) <= 1 && Math.abs(q.c - c) <= 1)) return false; return true; };
+        for (let r = 0; r < n; r++) {
+            let cols = Array.from({ length: n }, (_, i) => i).sort(() => Math.random() - 0.5);
+            let placed = false;
+            for (let c of cols) { if (isSafe(r, c)) { queens.push({ r, c }); placed = true; break; } }
+            if (!placed) return findRandomNQueens(n);
+        }
+        return queens;
+    }
+
+    /** Seed Finder: Identifies queen placements with high spatial dispersion */
+    function findStrongQueenSeed(n) {
+        let bestSeed = null, maxDistance = 0;
+        for (let i = 0; i < 50; i++) {
+            let seed = findRandomNQueens(n), dist = calculateSpread(seed);
+            if (dist > maxDistance) { maxDistance = dist; bestSeed = seed; }
+        }
+        return bestSeed;
+    }
+
+    function calculateSpread(queens) {
+        let totalDist = 0;
+        for (let i = 0; i < queens.length; i++) for (let j = i + 1; j < queens.length; j++) totalDist += Math.abs(queens[i].r - queens[j].r) + Math.abs(queens[i].c - queens[j].c);
+        return totalDist;
+    }
+
+    /** Algorithm Phase 1: Expansion of color regions from seed points */
+    function growGreedySnakes(queens, n) {
+        let board = Array(n).fill().map(() => Array(n).fill(-1));
+        const seeds = queens.map((q, i) => ({ r: q.r, c: q.c, id: i }));
+        let dominantCount = n >= 12 ? 3 : (n >= 8 ? 2 : 1);
+        const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+        for (let i = 0; i < dominantCount; i++) board[seeds[i].r][seeds[i].c] = seeds[i].id;
+        let unassigned = (n * n) - dominantCount;
+        while (unassigned > 0) {
+            let changed = false;
+            for (let i = 0; i < dominantCount; i++) {
+                const cells = getRegionCells(board, i, n); if (cells.length === 0) continue;
+                const base = cells[Math.floor(Math.random() * cells.length)];
+                const dir = directions[Math.floor(Math.random() * 4)];
+                const nr = base.r + dir[0], nc = base.c + dir[1];
+                if (nr >= 0 && nr < n && nc >= 0 && nc < n && board[nr][nc] === -1) { board[nr][nc] = i; unassigned--; changed = true; }
+            }
+            if (!changed && unassigned > 0) {
+                for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (board[r][c] === -1) {
+                    for (let d of directions) { let nr = r + d[0], nc = c + d[1]; if (nr >= 0 && nr < n && nc >= 0 && nc < n && board[nr][nc] !== -1 && board[nr][nc] < dominantCount) { board[r][c] = board[nr][nc]; unassigned--; break; } }
+                }
+            }
+        }
+        for (let i = dominantCount; i < n; i++) board[seeds[i].r][seeds[i].c] = seeds[i].id;
+        const satelliteCap = Math.floor(((n * n) / n) * 0.85);
+        let boardChanged = true;
+        while (boardChanged) {
+            boardChanged = false;
+            for (let i = dominantCount; i < n; i++) {
+                const currentCells = getRegionCells(board, i, n); if (currentCells.length >= satelliteCap) continue;
+                let possibleTargets = [];
+                for (let cell of currentCells) for (let d of directions) {
+                    let nr = cell.r + d[0], nc = cell.c + d[1];
+                    if (nr >= 0 && nr < n && nc >= 0 && nc < n) {
+                        let targetReg = board[nr][nc];
+                        if (targetReg >= 0 && targetReg < dominantCount && !seeds.some(s => s.r === nr && s.c === nc)) possibleTargets.push({ r: nr, c: nc, regId: targetReg });
+                    }
+                }
+                if (possibleTargets.length > 0) {
+                    let t = possibleTargets[Math.floor(Math.random() * possibleTargets.length)];
+                    if (isSafeToSteal(board, t.r, t.c, t.regId, n)) { board[t.r][t.c] = i; boardChanged = true; }
+                }
+            }
+        }
+        return board;
+    }
+
+    /** Connectivity Check: Ensures regions don't fragment into 'islands' after mutation */
+    function isSafeToSteal(board, r, c, regionId, n) {
+        const originalValue = board[r][c]; board[r][c] = -2;
+        const cells = []; for (let row = 0; row < n; row++) for (let col = 0; col < n; col++) if (board[row][col] === regionId) cells.push({ r: row, c: col });
+        if (cells.length === 0) { board[r][c] = originalValue; return false; }
+        let reached = new Set(), queue = [cells[0]]; reached.add(`${cells[0].r},${cells[0].c}`);
+        let head = 0;
+        while (head < queue.length) {
+            let curr = queue[head++];
+            for (let d of [[0, 1], [1, 0], [0, -1], [-1, 0]]) {
+                let nr = curr.r + d[0], nc = curr.c + d[1];
+                if (nr >= 0 && nr < n && nc >= 0 && nc < n && board[nr][nc] === regionId && !reached.has(`${nr},${nc}`)) { reached.add(`${nr},${nc}`); queue.push({ r: nr, c: nc }); }
+            }
+        }
+        board[r][c] = originalValue; return reached.size === cells.length;
+    }
+
+    function getRegionCells(board, id, n) {
+        const cells = []; for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (board[r][c] === id) cells.push({ r, c });
+        return cells;
+    }
+
+    /** Solver: Efficiently finds if 0, 1, or 2+ solutions exist for a board */
+    function findTwoSolutions(board, n, maxSolutions = 2) {
+        const N = Number(n); let sols = [];
+        const usedCols = new Uint8Array(N), usedColors = new Uint8Array(N), currentQueens = new Int16Array(N).fill(-1);
+        function solve(row) {
+            if (sols.length >= maxSolutions) return;
+            if (row === N) { const res = []; for (let i = 0; i < N; i++) res.push({ r: i, c: currentQueens[i] }); sols.push(res); return; }
+            for (let col = 0; col < N; col++) {
+                const color = board[row][col];
+                if (usedCols[col] || usedColors[color]) continue;
+                if (row > 0 && Math.abs(col - currentQueens[row - 1]) <= 1) continue;
+                currentQueens[row] = col; usedCols[col] = 1; usedColors[color] = 1;
+                solve(row + 1);
+                usedCols[col] = 0; usedColors[color] = 0; currentQueens[row] = -1;
+            }
+        }
+        solve(0); return sols;
+    }
+
+    /** Mutator: Swaps cell regions between a primary and alternative solution to force uniqueness */
+    function mutateBoard(board, solA, solB, n, attemptCount) {
+        let differences = solB.filter(qb => !solA.some(qa => qa.r === qb.r && qa.c === qb.c)).sort(() => Math.random() - 0.5);
+        const power = attemptCount > 20 ? 2 : 1, mutationBurst = attemptCount > 35 ? 3 : 1;
+        let successfulMutations = 0;
+        for (let target of differences) {
+            if (successfulMutations >= mutationBurst) break;
+            let candidates = [];
+            for (let rd = -power; rd <= power; rd++) for (let cd = -power; cd <= power; cd++) {
+                let nr = target.r + rd, nc = target.c + cd; if (nr >= 0 && nr < n && nc >= 0 && nc < n) candidates.push({ r: nr, c: nc });
+            }
+            candidates.sort(() => Math.random() - 0.5);
+            for (let cand of candidates) {
+                if (solA.some(qa => qa.r === cand.r && qa.c === cand.c)) continue;
+                let neighbors = [];
+                for (let d of [[0, 1], [1, 0], [0, -1], [-1, 0]]) {
+                    let nr = cand.r + d[0], nc = cand.c + d[1]; if (nr >= 0 && nr < n && nc >= 0 && nc < n && board[nr][nc] !== board[cand.r][cand.c]) neighbors.push(board[nr][nc]);
+                }
+                for (let newRegId of neighbors) if (canChangeCell(board, cand.r, cand.c, newRegId, n, solA)) { board[cand.r][cand.c] = newRegId; successfulMutations++; break; }
+                if (successfulMutations >= mutationBurst) break;
+            }
+        }
+        return successfulMutations > 0 ? board : null;
+    }
+
+    function canChangeCell(board, r, c, newRegionId, n, solA) {
+        if (solA.some(q => q.r === r && q.c === c)) return false;
+        const original = board[r][c]; board[r][c] = newRegionId;
+        const connected = checkConnectivity(board, original, n);
+        board[r][c] = original; return connected;
+    }
+
+    function checkConnectivity(board, regionId, n) {
+        let cells = []; for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (board[r][c] === regionId) cells.push({ r, c });
+        if (cells.length <= 1) return true;
+        let reached = new Set(), queue = [cells[0]]; reached.add(`${cells[0].r},${cells[0].c}`);
+        let head = 0;
+        while (head < queue.length) {
+            let curr = queue[head++];
+            for (let d of [[0, 1], [1, 0], [0, -1], [-1, 0]]) {
+                let nr = curr.r + d[0], nc = curr.c + d[1];
+                if (nr >= 0 && nr < n && nc >= 0 && nc < n && board[nr][nc] === regionId && !reached.has(`${nr},${nc}`)) { reached.add(`${nr},${nc}`); queue.push({ r: nr, c: nc }); }
+            }
+        }
+        return reached.size === cells.length;
+    }
+
+    function initManualBuild() {
+        N = parseInt(document.getElementById('boardSize').value);
+        layout = Array.from({ length: N }, () => Array(N).fill(-1));
+        document.getElementById('builder-grid').style.setProperty('--size', N);
+        createPalette(N); renderBuilder(); updateBuilderOutput();
+    }
+
+    function createPalette(n) {
+        const palette = document.getElementById('palette'); if (!palette) return;
+        palette.innerHTML = '';
+        for (let i = 0; i < n; i++) {
+            const btn = document.createElement('div'); btn.className = `cell c${i}`; btn.style.width = '35px'; btn.style.height = '35px'; btn.style.cursor = 'pointer';
+            btn.style.border = (i === selectedBuilderColor) ? '3px solid black' : '1px solid #999';
+            btn.onclick = () => { selectedBuilderColor = i; createPalette(n); };
+            palette.appendChild(btn);
+        }
+    }
+
+    /** Specialized renderer for builder mode to allow drag-painting */
+    function renderBuilder() {
+        const grid = document.getElementById('builder-grid'); if (!grid) return;
+        const n = layout.length; grid.style.setProperty('--size', n); grid.innerHTML = '';
+        updateBuilderLabels(n);
+        layout.forEach((row, r) => row.forEach((colorIdx, c) => {
+            const d = document.createElement('div'); d.className = `cell ${colorIdx === -1 ? '' : 'c' + colorIdx}`; d.dataset.r = r; d.dataset.c = c;
+            d.onpointerdown = (e) => { if (!isManualEditActive) return; isBuilderPainting = true; d.releasePointerCapture(e.pointerId); paintCell(d, r, c); markBoardAsDirty(); };
+            d.onpointerover = () => { if (isBuilderPainting && isManualEditActive) { paintCell(d, r, c); markBoardAsDirty(); } };
+            grid.appendChild(d);
+        }));
+    }
+
+    function updateBuilderLabels(size) {
+        const colContainer = document.getElementById('builder-cols'), rowContainer = document.getElementById('builder-rows');
+        if (!colContainer || !rowContainer) return;
+        colContainer.innerHTML = ''; rowContainer.innerHTML = '';
+        for (let i = 0; i < size; i++) {
+            const cL = document.createElement('div'); cL.className = 'label label-col'; cL.innerText = i + 1; colContainer.appendChild(cL);
+            const rL = document.createElement('div'); rL.className = 'label label-row'; rL.innerText = i + 1; rowContainer.appendChild(rL);
+        }
+    }
+
+    function updateBuilderOutput() { const out = document.getElementById('output'); if (out) out.value = JSON.stringify(layout); }
+
+    function importLayout() {
+        try {
+            const raw = document.getElementById('output').value; const imported = JSON.parse(raw);
+            if (!Array.isArray(imported) || !Array.isArray(imported[0])) throw new Error("Invalid format.");
+            layout = imported; N = layout.length; document.getElementById('boardSize').value = N;
+            document.getElementById('builder-grid').style.setProperty('--size', N);
+            renderBuilder(); createPalette(N); addLog(`Imported ${N}x${N}.`, "logic"); markBoardAsDirty();
+        } catch (e) { addLog("Import failed.", "error"); }
+    }
+
+    function displayQueensOnBuilder(solutions) {
+        solutions.forEach(solution => solution.forEach(q => {
+            const cellEl = document.querySelector(`#builder-grid .cell[data-r="${q.r}"][data-c="${q.c}"]`);
+            if (cellEl) cellEl.classList.add('queen');
+        }));
+    }
+
+    window.addEventListener('pointerup', () => isBuilderPainting = false);
+    document.getElementById('showQueensOnTest').addEventListener('change', () => { if (isBoardValidated) testManualBuild(false); });
+</script>
+
+<script id="play-logic">
+    /**
+     * PLAY LOGIC: User input management and game session orchestration.
+     * Features a custom double-tap gesture for queen placement.
+     **/
+
+    const playGrid = document.getElementById('play-grid');
+    let isPointerDown = false;
+    let dragMode = null;
+    let hasDragged = false;
+    let clickTimer = null;
+    let lastTapTime = 0;
+    let lastTapCell = null;
+    const DOUBLE_TAP_MS = 300;
+    let currentStep = 0;
+    let lastReportedErrors = [];
+    let gameStartTime = 0;
+    let timerRequest = null;
+
+    /** Updates cell history and visual class */
+    function updateCell(cell, targetStatus) {
+        const r = parseInt(cell.dataset.r), c = parseInt(cell.dataset.c);
+        state[r][c].status.push(targetStatus);
+        const lastClicked = Math.max(...state.flat().map(cell => cell.clicked.length === 0 ? 0 : cell.clicked[cell.clicked.length - 1]));
+        state[r][c].clicked.push(lastClicked + 1);
+        cell.classList.remove('empty', 'blocked', 'queen');
+        cell.classList.add(targetStatus);
+    }
+
+    /** * Interaction: Pointer Down 
+     * Distinguishes between the first tap of a potential double-tap and the start of a drag.
+     */
+    playGrid.addEventListener('pointerdown', (e) => {
+        if (!isGameActive) return;
+        const cell = e.target.closest('.cell'); if (!cell) return;
+        const now = performance.now(); const timeSinceLastTap = now - lastTapTime;
+        const r = parseInt(cell.dataset.r), c = parseInt(cell.dataset.c);
+        isPointerDown = true; hasDragged = false; cell.releasePointerCapture(e.pointerId);
+        
+        // Double-Tap Logic
+        if (cell === lastTapCell && timeSinceLastTap < DOUBLE_TAP_MS) {
+            clearTimeout(clickTimer); 
+            state[r][c].status.pop(); state[r][c].clicked.pop(); // Revert the 'blocked' status from 1st tap
+            updateCell(cell, 'queen'); validatePlacement(); lastTapTime = 0; lastTapCell = null; return;
+        }
+        
+        lastTapTime = now; lastTapCell = cell;
+        dragMode = cell.classList.contains('empty') ? 'blocked' : 'empty';
+        updateCell(cell, dragMode);
+        
+        clearTimeout(clickTimer);
+        clickTimer = setTimeout(() => { if (isPointerDown) validatePlacement(); }, DOUBLE_TAP_MS);
+    });
+
+    /** Interaction: Dragging over cells to mass-block areas */
+    playGrid.addEventListener('pointerover', (e) => {
+        if (!isGameActive || !isPointerDown || !dragMode) return;
+        const cell = e.target.closest('.cell');
+        if (cell) { hasDragged = true; updateCell(cell, dragMode); }
+    });
+
+    window.addEventListener('pointerup', () => {
+        if (isPointerDown) {
+            if (hasDragged) validatePlacement();
+            else {
+                clearTimeout(clickTimer);
+                clickTimer = setTimeout(() => { validatePlacement(); }, 250);
+            }
+        }
+        isPointerDown = false; dragMode = null;
+    });
+
+    /** Board Evaluator: Provides real-time feedback on conflicts and puzzle completion */
+    function validatePlacement() {
+        const check = checkState(state);
+        const queens = state.flat().filter(c => c.status.at(-1) === 'queen');
+        const statusEl = document.getElementById('status');
+        document.querySelectorAll('#play-grid .cell').forEach(el => el.classList.remove('conflict'));
+        
+        if (!check.isValid) {
+            statusEl.innerText = "Conflict Detected"; statusEl.style.color = "#d9534f";
+            check.conflictCoords.forEach(coord => {
+                const [r, c] = coord.split(',');
+                const cellEl = document.querySelector(`#play-grid [data-r="${r}"][data-c="${c}"]`);
+                if (cellEl) cellEl.classList.add('conflict');
+            });
+            const newErrors = check.errors.filter(err => !lastReportedErrors.includes(err));
+            newErrors.forEach(err => addLog(`${err}`, "error"));
+            lastReportedErrors = [...check.errors];
+        } else {
+            statusEl.innerText = "Board Valid"; statusEl.style.color = "#007AFF"; lastReportedErrors = [];
+        }
+
+        // Generate play-log step description
+        const orderedClicks = state.flat().flatMap(cell => cell.clicked.map(seq => ({ ...cell, clickIndex: seq })))
+            .filter(record => record.clickIndex > -1).sort((a, b) => a.clickIndex - b.clickIndex);
+        for (let i = currentStep; i < orderedClicks.length; i++) {
+            const cell = orderedClicks[i];
+            addLog(`Step ${i + 1}: Set (${cell.r + 1}, ${cell.c + 1}) to '${cell.status.at(-1)}'`, "logic");
+            currentStep = i + 1;
+        }
+
+        if (isGameActive && check.isValid && queens.length === state.length) stopTimer();
+        updateBackBtnState();
+    }
+
+    /** 3-2-1 Countdown before revealing the grid */
+    function startCountdown() {
+        const overlay = document.getElementById('countdown-overlay'), startBtn = document.getElementById('startBtn'), grid = document.getElementById('play-grid');
+        startBtn.disabled = true; overlay.style.display = 'flex'; grid.classList.add('hidden');
+        let count = 3; overlay.innerText = count;
+        const countdownInterval = setInterval(() => {
+            count--;
+            if (count > 0) overlay.innerText = count;
+            else { clearInterval(countdownInterval); overlay.style.display = 'none'; grid.classList.remove('hidden'); beginGame(); }
+        }, 1000);
+    }
+
+    function beginGame() { isGameActive = true; gameStartTime = performance.now(); updateTimer(); addLog("Game Started!", "logic"); updateBackBtnState(); }
+
+    /** High-precision loop using requestAnimationFrame for smooth clock updates */
+    function updateTimer() {
+        if (!isGameActive) return;
+        const elapsed = performance.now() - gameStartTime;
+        const min = Math.floor(elapsed / 60000), sec = Math.floor((elapsed % 60000) / 1000), cent = Math.floor((elapsed % 1000) / 10);
+        document.getElementById('game-timer').innerText = `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}:${String(cent).padStart(2, '0')}`;
+        timerRequest = requestAnimationFrame(updateTimer);
+    }
+
+    function stopTimer() {
+        isGameActive = false; cancelAnimationFrame(timerRequest); document.getElementById('startBtn').disabled = false;
+        document.getElementById('play-grid').classList.add('game-over');
+        addLog(`🏁 Finished! Time: ${document.getElementById('game-timer').innerText}`, "success");
+    }
+
+    function resetPlayGame() {
+        isGameActive = false; if (timerRequest) cancelAnimationFrame(timerRequest);
+        document.getElementById('game-timer').innerText = "00:00:00"; document.getElementById('startBtn').disabled = false;
+        document.getElementById('play-grid').classList.remove('game-over');
+        currentStep = 0; lastReportedErrors = []; reset('play');
+        addLog("Game Reset.", "logic"); updateBackBtnState();
+    }
+
+    /** Undo History: pops the last entry from the status/click stacks of the most recent move */
+    function undoMove() {
+        if (!isGameActive) return;
+        let lastCell = null, maxClickIndex = -1;
+        state.flat().forEach(cell => {
+            if (cell.clicked.length > 0) {
+                const currentMax = cell.clicked[cell.clicked.length - 1];
+                if (currentMax > maxClickIndex) { maxClickIndex = currentMax; lastCell = cell; }
+            }
+        });
+        if (lastCell) {
+            lastCell.status.pop(); lastCell.clicked.pop();
+            const cellEl = document.querySelector(`#play-grid .cell[data-r="${lastCell.r}"][data-c="${lastCell.c}"]`);
+            if (cellEl) { cellEl.classList.remove('empty', 'blocked', 'queen'); cellEl.classList.add(lastCell.status.at(-1)); }
+            if (currentStep > 0) currentStep--;
+            validatePlacement(); addLog(`Undo: Reverted (${lastCell.r + 1}, ${lastCell.c + 1})`, "logic");
+        }
+    }
+
+    function updateBackBtnState() {
+        const btn = document.getElementById('backBtn'); if (!btn) return;
+        const total = state.flat().reduce((sum, cell) => sum + cell.clicked.length, 0);
+        const canUndo = total > 0 && isGameActive;
+        btn.disabled = !canUndo; btn.style.opacity = canUndo ? "1" : "0.4"; btn.style.cursor = canUndo ? "pointer" : "not-allowed";
+    }
+</script>
+
+
+
+
+
+    </body>
+
+</html>
