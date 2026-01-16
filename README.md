@@ -1,7 +1,7 @@
-# Peer To Peer Queens ♛
+# Queens With Friends ♛
 > **Play, challenge, and learn with friends.**
 
-**Peer To Peer Queens** is an open-source logic puzzle engine. It was built as a response to the "leaderboard culture" of the puzzle on LinkedIn, where faked solve times and scripts often overshadow genuine skill. 
+**Queens With Friends** is an open-source logic puzzle engine. It was built as a response to the "leaderboard culture" of the puzzle on LinkedIn, where faked solve times and scripts often overshadow genuine skill. 
 
 This platform returns the game to its roots: a private, honest, and transparent environment for true logic enthusiasts to sharpen their minds and challenge their peers.
 
@@ -10,7 +10,7 @@ This platform returns the game to its roots: a private, honest, and transparent 
 ## 🛡️ The Mission
 The inspiration for this project came from observing the competitive "Queens" puzzles on LinkedIn. I noticed that instead of fostering a community of learners, the focus often shifted to displaying impossible solve times.
 
-**Peer To Peer Queens** solves this by:
+**Queens With Friends** solves this by:
 1. **Eliminating the Central Leaderboard:** Competition happens between friends via direct challenge links.
 2. **Exposing the Logic:** A built-in "Solver" which takes you through how to solve boards.
 3. **Encouraging Creation:** Allowing users to architect their own challenges and validate them mathematically. 
@@ -44,7 +44,7 @@ The goal is to place exactly **N** queens on an **N x N** grid. To reach a valid
 
 ### 4. Zero-Server Sharing (P2P)
 * No databases, no accounts, no tracking. 
-* **Peer To Peer Queens** uses **Base64 URL Encoding** to store the entire board state within the link. Simply click "Share," send the URL to a friend, and they are playing your specific board instantly.
+* **Queens With Friends** uses **Base64 URL Encoding** to store the entire board state within the link. Simply click "Share," send the URL to a friend, and they are playing your specific board instantly.
 
 ---
 
