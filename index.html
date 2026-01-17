@@ -122,49 +122,84 @@
 
 
         /* Container for the entire header */
-.header-section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    width: 100%;
-    padding: 20px 10px;
-    box-sizing: border-box;
-}
+        .header-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            width: 100%;
+            padding: 20px 10px;
+            box-sizing: border-box;
+        }
 
-/* Container for the image itself */
-.logo-container {
-    display: flex;
-    justify-content: center;
-    width: 100%;
-    margin-bottom: 10px; /* Space between logo and name */
-}
+        /* Container for the image itself */
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            margin-bottom: 10px; /* Space between logo and name */
+        }
 
-/* Image scaling rules */
-.app-logo {
-    /* Mobile-first: stays within screen bounds */
-    max-width: 80%; 
-    height: auto;
-    display: block;
-}
+        /* Image scaling rules */
+        .app-logo {
+            /* Mobile-first: stays within screen bounds */
+            max-width: 80%; 
+            height: auto;
+            display: block;
+        }
 
-/* Desktop optimization */
-@media (min-width: 768px) {
-    .app-logo {
-        max-width: 350px; /* Adjust this value based on your logo's design */
-    }
-}
+        /* Desktop optimization */
+        @media (min-width: 768px) {
+            .app-logo {
+                max-width: 350px; /* Adjust this value based on your logo's design */
+            }
+        }
 
-/* Ensure the author link is centered and easy to tap */
-.author-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    text-decoration: none;
-    font-size: var(--font-ui);
-    color: #007AFF; /* Or your preferred link color */
-}
+        /* Ensure the author link is centered and easy to tap */
+        .author-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            font-size: var(--font-ui);
+            color: #007AFF; /* Or your preferred link color */
+        }
+
+        /* Layout for author link and instructions button side-by-side */
+        .header-utility {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 5px;
+            flex-wrap: wrap;
+        }
+
+        .instructions-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background-color: #24292e; /* GitHub Dark Slate */
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            transition: transform 0.15s, background-color 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .instructions-btn:hover {
+            background-color: #444;
+            transform: translateY(-1px);
+            text-decoration: none;
+        }
+
+        .instructions-btn:active {
+            transform: translateY(1px);
+        }
 
         /* ============================================================
    3. THE GRID SYSTEM & BOARD STRUCTURE
@@ -919,12 +954,16 @@
         <img src="images/QueensWithFriendsLogo.png" alt="Queens With Friends Logo" class="app-logo">
     </div>
     
-    <a href="https://www.linkedin.com/in/rilhia/" target="_blank" class="author-link">
-        By Richard Hall 
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-        </svg>
-    </a>
+    <div class="header-utility">
+        <a href="https://www.linkedin.com/in/rilhia/" target="_blank" class="author-link">
+            By Richard Hall 
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+        </a>
+
+        <a href="https://github.com/rilhia/queens-with-friends/blob/main/README.md" target="_blank" class="instructions-btn">
+           📖 How to Play
+        </a>
+    </div>
 </header>
 
 
