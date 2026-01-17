@@ -1,3 +1,4 @@
+![Alt text for the image](images/QueensWithFriendsLogo.png)
 # Queens With Friends ♛
 > **Play, challenge, and learn with friends.**
 
