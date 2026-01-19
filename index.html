@@ -580,6 +580,9 @@
             border: none;
         }
 
+
+
+
         button.primary:hover:not(:disabled) {
             background: #333;
         }
@@ -605,10 +608,22 @@
             background: #e0a800;
         }
 
+
+        #applyBtn {
+            background: #28a745;
+            border: none;
+            color: #fff;
+        }
+
+        #applyBtn:hover:not(:disabled) {
+            background: #218838;
+        }
+
         #applyBtn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
             background-color: #ccc !important;
+            color: #333;
         }
 
         #backBtn:disabled {
@@ -991,7 +1006,7 @@
                 </svg>
             </a>
 
-            <a href="https://github.com/rilhia/queens-with-friends" target="_blank" class="instructions-btn">
+            <a href="https://github.com/rilhia/queens-with-friends/blob/main/README.md" target="_blank" class="instructions-btn">
                 📖 How to Play
             </a>
         </div>
@@ -2423,7 +2438,7 @@
             const diff = document.getElementById('targetDifficulty').value || "Medium";
             const levelSelect = document.getElementById('boardLevelSelect');
 
-            levelSelect.innerHTML = `<option value="">-- ${diff} Boards --</option>`;
+            levelSelect.innerHTML = `<option value="">-- ${diff} ${size}x${size} Boards --</option>`;
 
             // Look up the boards for this specific size/difficulty combo
             const availableBoards = levelLibrary[size]?.[diff] || [];
