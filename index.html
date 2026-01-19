@@ -32,7 +32,7 @@
             --touch-target: clamp(44px, 10vw, 54px);
             --input-width: clamp(60px, 15vw, 80px);
 
-            /* --- Logic Engine Color Palette --- */
+            /* --- Logic Engine Colour Palette --- */
             --Purple: #B497D6;
             /* c0 */
             --Orange: #F6C28B;
@@ -166,7 +166,7 @@
             text-decoration: none;
             font-size: var(--font-ui);
             color: #007AFF;
-            /* Or your preferred link color */
+            /* Or your preferred link colour */
         }
 
         /* Layout for author link and instructions button side-by-side */
@@ -780,7 +780,7 @@
         }
 
         /* ============================================================
-   9. COLOR PALETTE & REGIONS
+   9. Colour PALETTE & REGIONS
    ============================================================ */
         #palette {
             flex-direction: row !important;
@@ -793,7 +793,7 @@
             display: none !important;
         }
 
-        /* Region Color Classes */
+        /* Region Colour Classes */
         .c0 {
             background: var(--Purple);
         }
@@ -1006,7 +1006,8 @@
                 </svg>
             </a>
 
-            <a href="https://rilhia.github.io/queens-with-friends/instructions" target="_blank" class="instructions-btn">
+            <a href="https://rilhia.github.io/queens-with-friends/instructions" target="_blank"
+                class="instructions-btn">
                 📖 How to Play
             </a>
         </div>
@@ -1191,8 +1192,8 @@
         let isBoardLocked = false;
         /** Global reference to the active log element */
         let logEl = document.getElementById('play-log');
-        /** Array used for color-region lookups [0, 1, 2... N-1] */
-        let colorsArray = [];
+        /** Array used for colour-region lookups [0, 1, 2... N-1] */
+        let coloursArray = [];
         /** Game session state */
         let isGameActive = false;
 
@@ -1232,23 +1233,23 @@
 
         // --- Rendering Engine ---
 
-        /** Maps color IDs to human-readable names for logging */
-        function getColorName(id) {
+        /** Maps colour IDs to human-readable names for logging */
+        function getColourName(id) {
             return ["Purple", "Orange", "Blue", "White", "Red", "Yellow", "Green", "Gray", "Teal", "Pink", "Brown", "Indigo", "Lime", "Cyan", "Maroon", "Olive"][id];
         }
 
         /** Returns a list of colours as a comma-separated string */
-        function formatColorNames(ids) {
-            // 1. Convert the numbers to color names
-            const names = ids.map(id => getColorName(id));
+        function formatColourNames(ids) {
+            // 1. Convert the numbers to colour names
+            const names = ids.map(id => getColourName(id));
 
             // 2. Handle different list lengths for proper grammar
             if (names.length === 0) return "";
             if (names.length === 1) return names[0];
 
             // Join all but the last with commas, then add the final one with "and"
-            const lastColor = names.pop();
-            return names.join(', ') + ' and ' + lastColor;
+            const lastColour = names.pop();
+            return names.join(', ') + ' and ' + lastColour;
         }
 
         /** Prepares a blank slate layout for the builder based on user selection */
@@ -1301,7 +1302,7 @@
             } else if (tabId === 'solver' || tabId === 'play') {
                 state.flat().forEach(cell => {
                     const d = document.createElement('div');
-                    d.className = `cell c${cell.color} ${cell.status.at(-1)}`;
+                    d.className = `cell c${cell.colour} ${cell.status.at(-1)}`;
                     d.dataset.r = cell.r;
                     d.dataset.c = cell.c;
                     grid.appendChild(d);
@@ -1312,13 +1313,13 @@
         /** Global state reset - populates state with the currently activeLayout */
         function reset(gridType, keepLog = false) {
             state = activeLayout.map((row, r) => row.map((col, c) => ({
-                r, c, color: col, status: ['empty'], clicked: []
+                r, c, colour: col, status: ['empty'], clicked: []
             })));
 
             if (!keepLog) {
                 if (logEl) logEl.innerHTML = "<div>> System Ready.</div>";
             }
-            colorsArray = [...Array(state.length).keys()];
+            coloursArray = [...Array(state.length).keys()];
 
             if (gridType === 'builder') {
                 if (typeof renderBuilder === "function") renderBuilder();
@@ -1361,7 +1362,7 @@
 
         /** * Evaluates the entire board against standard Queen rules:
          * 1. One Queen per Row/Column.
-         * 2. One Queen per Color Region.
+         * 2. One Queen per Colour Region.
          * 3. No touching Queens (including diagonals).
          * 4. Starvation checks (identifying when a region/row/col has no available moves).
          */
@@ -1390,12 +1391,12 @@
                 }
             }
 
-            // Check Color Region Conflicts
-            const allColorIds = [...new Set(allCells.map(c => c.color))];
-            allColorIds.forEach(colorId => {
-                const regionQueens = queens.filter(q => q.color === colorId);
+            // Check Colour Region Conflicts
+            const allColourIds = [...new Set(allCells.map(c => c.colour))];
+            allColourIds.forEach(colourId => {
+                const regionQueens = queens.filter(q => q.colour === colourId);
                 if (regionQueens.length > 1) {
-                    errors.push(`Multiple queens in the ${getColorName(colorId)} region.`);
+                    errors.push(`Multiple queens in the ${getColourName(colourId)} region.`);
                     regionQueens.forEach(q => conflictCoords.add(`${q.r},${q.c}`));
                 }
             });
@@ -1414,10 +1415,10 @@
             }
 
             // Starvation: Check for regions that no longer have valid spaces
-            allColorIds.forEach(id => {
-                const region = allCells.filter(c => c.color === id);
+            allColourIds.forEach(id => {
+                const region = allCells.filter(c => c.colour === id);
                 if (!region.some(c => c.status.at(-1) === 'queen') && !region.some(c => c.status.at(-1) === 'empty')) {
-                    errors.push(`Impossible Region: ${getColorName(id)} has no room for a queen.`);
+                    errors.push(`Impossible Region: ${getColourName(id)} has no room for a queen.`);
                     region.forEach(c => conflictCoords.add(`${c.r},${c.c}`));
                     starvation = true;
                     starvationRegion = id;
@@ -1450,18 +1451,18 @@
         }
 
         /** Quick check: would placing a queen at r,c block target tr,tc based on rules? */
-        function wouldBlock(s, r, c, tr, tc, color) {
+        function wouldBlock(s, r, c, tr, tc, colour) {
             if (r === tr || c === tc) return true; // Row/Col
-            if (s[tr][tc].color === color) return true; // Region
+            if (s[tr][tc].colour === colour) return true; // Region
             if (Math.abs(r - tr) <= 1 && Math.abs(c - tc) <= 1) return true; // Adjacency
             return false;
         }
 
         /** Applies 'blocked' status to all cells invalidated by a queen placement */
-        function applyConstraints(s, r, c, color) {
+        function applyConstraints(s, r, c, colour) {
             let blockedCoords = [];
             s.flat().forEach(cell => {
-                if (cell.status.at(-1) === 'empty' && wouldBlock(s, r, c, cell.r, cell.c, color)) {
+                if (cell.status.at(-1) === 'empty' && wouldBlock(s, r, c, cell.r, cell.c, colour)) {
                     cell.status.push('blocked');
                     blockedCoords.push({ r: cell.r, c: cell.c });
                 }
@@ -1473,7 +1474,7 @@
         function getForcedQueens(s) {
             let forced = [];
             for (let i = 0; i < s.length; i++) {
-                const groups = [s.flat().filter(c => c.color === i), s[i], s.map(row => row[i])];
+                const groups = [s.flat().filter(c => c.colour === i), s[i], s.map(row => row[i])];
                 for (let group of groups) {
                     const empty = group.filter(c => c.status.at(-1) === 'empty');
                     if (empty.length === 1 && !group.some(c => c.status.at(-1) === 'queen')) {
@@ -1489,13 +1490,13 @@
 
         /** Thread-safe logging to the active log panel */
         function addLog(msg, type) {
-            let colorClass;
-            if (type === 'error') colorClass = 'log-error';
-            else if (type === 'success') colorClass = 'log-success';
-            else if (type === 'logic') colorClass = 'log-logic';
+            let colourClass;
+            if (type === 'error') colourClass = 'log-error';
+            else if (type === 'success') colourClass = 'log-success';
+            else if (type === 'logic') colourClass = 'log-logic';
 
             const div = document.createElement('div');
-            div.innerHTML = `<span class="${colorClass || ''}">${msg}</span>`;
+            div.innerHTML = `<span class="${colourClass || ''}">${msg}</span>`;
             if (logEl) logEl.insertBefore(div, logEl.firstChild);
         }
 
@@ -1609,34 +1610,34 @@
         // --- Deduction Engines (Heuristics) ---
 
         /** * Strategy: Locked Subsets (Naked N-tuples)
-         * If N colors can only be placed in N rows/cols, then no other colors can be in those lines.
+         * If N colours can only be placed in N rows/cols, then no other colours can be in those lines.
          */
         function internalLockedSubsetElimination(s, maxSize = 4) {
             let sizes = Array.from({ length: maxSize - 1 }, (_, i) => i + 2).sort(() => Math.random() - 0.5);
             for (let size of sizes) {
-                let tasks = [{ type: 'row', idx: colorsArray }, { type: 'col', idx: colorsArray }].sort(() => Math.random() - 0.5);
+                let tasks = [{ type: 'row', idx: coloursArray }, { type: 'col', idx: coloursArray }].sort(() => Math.random() - 0.5);
                 for (let task of tasks) {
                     let combinations = getCombinations(task.idx, size).sort(() => Math.random() - 0.5);
                     for (let indices of combinations) {
-                        const restrictedColors = [];
+                        const restrictedColours = [];
                         for (let co = 0; co < s.length; co++) {
-                            const colorCells = s.flat().filter(cell => cell.color === co && cell.status.at(-1) === 'empty');
+                            const colourCells = s.flat().filter(cell => cell.colour === co && cell.status.at(-1) === 'empty');
                             const isRestricted = task.type === 'row'
-                                ? colorCells.length > 0 && colorCells.every(cell => indices.includes(cell.r))
-                                : colorCells.length > 0 && colorCells.every(cell => indices.includes(cell.c));
-                            if (isRestricted) restrictedColors.push(co);
+                                ? colourCells.length > 0 && colourCells.every(cell => indices.includes(cell.r))
+                                : colourCells.length > 0 && colourCells.every(cell => indices.includes(cell.c));
+                            if (isRestricted) restrictedColours.push(co);
                         }
 
-                        if (restrictedColors.length === indices.length) {
+                        if (restrictedColours.length === indices.length) {
                             let currentElims = [];
                             let activeIndices = new Set(); // To track which rows/cols actually changed
-                            let activeColors = new Set();  // To track which colors caused the restriction
+                            let activeColours = new Set();  // To track which colours caused the restriction
 
                             for (let lineIndex of indices) {
                                 let lineHadElimination = false;
                                 for (let other = 0; other < s.length; other++) {
                                     const cell = task.type === 'row' ? s[lineIndex][other] : s[other][lineIndex];
-                                    if (cell.status.at(-1) === 'empty' && !restrictedColors.includes(cell.color)) {
+                                    if (cell.status.at(-1) === 'empty' && !restrictedColours.includes(cell.colour)) {
                                         cell.status.push('blocked');
                                         currentElims.push({ r: cell.r, c: cell.c });
                                         lineHadElimination = true;
@@ -1650,23 +1651,23 @@
                             }
 
                             if (currentElims.length > 0) {
-                                // Filter the colors: only mention colors that exist within the active rows/cols
-                                restrictedColors.forEach(co => {
-                                    const cells = s.flat().filter(cell => cell.color === co && cell.status.at(-1) === 'empty');
+                                // Filter the colours: only mention colours that exist within the active rows/cols
+                                restrictedColours.forEach(co => {
+                                    const cells = s.flat().filter(cell => cell.colour === co && cell.status.at(-1) === 'empty');
                                     const existsInActiveLine = cells.some(cell => {
                                         const pos = task.type === 'row' ? cell.r : cell.c;
                                         return activeIndices.has(pos);
                                     });
-                                    if (existsInActiveLine) activeColors.add(co);
+                                    if (existsInActiveLine) activeColours.add(co);
                                 });
 
                                 // Convert sets back to sorted arrays for the message
                                 const finalLines = Array.from(activeIndices).sort((a, b) => a - b);
-                                const finalColors = Array.from(activeColors);
+                                const finalColours = Array.from(activeColours);
 
                                 return {
                                     type: 'logic', method: 'Subset',
-                                    desc: `Subset Logic: ${formatColorNames(finalColors)} locked in ${task.type}s ${finalLines.map(i => i + 1).join(',')}`,
+                                    desc: `Subset Logic: ${formatColourNames(finalColours)} locked in ${task.type}s ${finalLines.map(i => i + 1).join(',')}`,
                                     elims: currentElims
                                 };
                             }
@@ -1681,20 +1682,20 @@
 
 
         /** Strategy: Adjacency (Broken Regions)
-         * Marks a cell as blocked if placing a queen there would leave a neighboring color region with zero room.
+         * Marks a cell as blocked if placing a queen there would leave a neighboring colour region with zero room.
          */
         function internalBlockImpossible(s) {
             let coords = s.flat().filter(c => c.status.at(-1) === 'empty').sort(() => Math.random() - 0.5);
             for (let cell of coords) {
-                let colors = colorsArray.sort(() => Math.random() - 0.5);
-                for (let colorID of colors) {
-                    if (colorID === cell.color) continue;
-                    const region = s.flat().filter(c => c.color === colorID);
+                let colours = coloursArray.sort(() => Math.random() - 0.5);
+                for (let colourID of colours) {
+                    if (colourID === cell.colour) continue;
+                    const region = s.flat().filter(c => c.colour === colourID);
                     if (region.some(c => c.status.at(-1) === 'queen')) continue;
                     const available = region.filter(c => c.status.at(-1) === 'empty');
-                    if (available.length > 0 && available.every(t => wouldBlock(s, cell.r, cell.c, t.r, t.c, cell.color))) {
+                    if (available.length > 0 && available.every(t => wouldBlock(s, cell.r, cell.c, t.r, t.c, cell.colour))) {
                         cell.status.push('blocked');
-                        return { type: 'logic', method: 'Adjacency', desc: `Adjacency: Cell (${cell.r + 1},${cell.c + 1}) breaks ${getColorName(colorID)}`, elims: [{ r: cell.r, c: cell.c }] };
+                        return { type: 'logic', method: 'Adjacency', desc: `Adjacency: Cell (${cell.r + 1},${cell.c + 1}) breaks ${getColourName(colourID)}`, elims: [{ r: cell.r, c: cell.c }] };
                     }
                 }
             }
@@ -1705,27 +1706,27 @@
          * If every valid configuration of Region A and Region B blocks Cell X, then Cell X MUST be blocked.
          */
         function internalMutualExclusion(s) {
-            const regionIds = colorsArray;
+            const regionIds = coloursArray;
             const regionPairs = getCombinations(regionIds, 2).sort(() => Math.random() - 0.5);
             for (const [id1, id2] of regionPairs) {
-                const cells1 = s.flat().filter(c => c.color === id1 && c.status.at(-1) === 'empty');
-                const cells2 = s.flat().filter(c => c.color === id2 && c.status.at(-1) === 'empty');
+                const cells1 = s.flat().filter(c => c.colour === id1 && c.status.at(-1) === 'empty');
+                const cells2 = s.flat().filter(c => c.colour === id2 && c.status.at(-1) === 'empty');
                 if (cells1.length === 0 || cells2.length === 0) continue;
                 const validConfigs = [];
                 for (const c1 of cells1) {
                     for (const c2 of cells2) {
-                        if (!wouldBlock(s, c1.r, c1.c, c2.r, c2.c, c1.color)) validConfigs.push([c1, c2]);
+                        if (!wouldBlock(s, c1.r, c1.c, c2.r, c2.c, c1.colour)) validConfigs.push([c1, c2]);
                     }
                 }
                 if (validConfigs.length === 0) continue;
-                const externalCells = s.flat().filter(c => c.status.at(-1) === 'empty' && c.color !== id1 && c.color !== id2);
+                const externalCells = s.flat().filter(c => c.status.at(-1) === 'empty' && c.colour !== id1 && c.colour !== id2);
                 for (const target of externalCells) {
                     const isAlwaysBlocked = validConfigs.every(([c1, c2]) => {
-                        return wouldBlock(s, c1.r, c1.c, target.r, target.c, c1.color) || wouldBlock(s, c2.r, c2.c, target.r, target.c, c2.color);
+                        return wouldBlock(s, c1.r, c1.c, target.r, target.c, c1.colour) || wouldBlock(s, c2.r, c2.c, target.r, target.c, c2.colour);
                     });
                     if (isAlwaysBlocked) {
                         target.status.push('blocked');
-                        return { type: 'logic', method: 'Mutual Exclusion', desc: `Mutual Exclusion: ${getColorName(id1)} and ${getColorName(id2)} block (${target.r + 1},${target.c + 1}).`, elims: [{ r: target.r, c: target.c }] };
+                        return { type: 'logic', method: 'Mutual Exclusion', desc: `Mutual Exclusion: ${getColourName(id1)} and ${getColourName(id2)} block (${target.r + 1},${target.c + 1}).`, elims: [{ r: target.r, c: target.c }] };
                     }
                 }
             }
@@ -1743,14 +1744,14 @@
                     const lineCells = (task.type === 'row') ? s[i] : s.map(row => row[i]);
                     const emptyLineCells = lineCells.filter(c => c.status.at(-1) === 'empty');
                     if (emptyLineCells.length === 0) continue;
-                    const colorsInLine = [...new Set(emptyLineCells.map(c => c.color))].sort((a, b) => a - b);
-                    for (let colorID of colorsInLine) {
-                        const regionCells = s.flat().filter(c => c.color === colorID && c.status.at(-1) === 'empty');
-                        const intersection = emptyLineCells.filter(c => c.color === colorID);
+                    const coloursInLine = [...new Set(emptyLineCells.map(c => c.colour))].sort((a, b) => a - b);
+                    for (let colourID of coloursInLine) {
+                        const regionCells = s.flat().filter(c => c.colour === colourID && c.status.at(-1) === 'empty');
+                        const intersection = emptyLineCells.filter(c => c.colour === colourID);
                         if (regionCells.length > 0 && regionCells.length === intersection.length) {
                             let currentElims = [];
-                            emptyLineCells.forEach(lc => { if (lc.color !== colorID) currentElims.push({ r: lc.r, c: lc.c }); });
-                            if (currentElims.length > 0) allFoundMoves.push({ type: 'logic', method: 'Super-Intersection (Pointing)', impact: currentElims.length, desc: `${getColorName(colorID)} is trapped in ${task.type} ${i + 1}.`, elims: currentElims });
+                            emptyLineCells.forEach(lc => { if (lc.colour !== colourID) currentElims.push({ r: lc.r, c: lc.c }); });
+                            if (currentElims.length > 0) allFoundMoves.push({ type: 'logic', method: 'Super-Intersection (Pointing)', impact: currentElims.length, desc: `${getColourName(colourID)} is trapped in ${task.type} ${i + 1}.`, elims: currentElims });
                         }
                         if (emptyLineCells.length > 0 && emptyLineCells.length === intersection.length) {
                             let currentElims = [];
@@ -1758,7 +1759,7 @@
                                 const inLine = (task.type === 'row') ? (rc.r === i) : (rc.c === i);
                                 if (!inLine) currentElims.push({ r: rc.r, c: rc.c });
                             });
-                            if (currentElims.length > 0) allFoundMoves.push({ type: 'logic', method: 'Super-Intersection (Reduction)', impact: currentElims.length, desc: `${task.type} ${i + 1} is restricted to ${getColorName(colorID)}.`, elims: currentElims });
+                            if (currentElims.length > 0) allFoundMoves.push({ type: 'logic', method: 'Super-Intersection (Reduction)', impact: currentElims.length, desc: `${task.type} ${i + 1} is restricted to ${getColourName(colourID)}.`, elims: currentElims });
                         }
                     }
                 }
@@ -1776,26 +1777,26 @@
          * Identifies when multiple rows/cols are collectively claimed by specific regions.
          */
         function internalHiddenRegionSubsets(s, maxSize = 4) {
-            const unsolvedRegions = colorsArray.filter(id => !s.flat().some(c => c.color === id && c.status.at(-1) === 'queen'));
+            const unsolvedRegions = coloursArray.filter(id => !s.flat().some(c => c.colour === id && c.status.at(-1) === 'queen'));
             const unsolvedRowIndices = [...Array(s.length).keys()].filter(r => !s[r].some(c => c.status.at(-1) === 'queen'));
             const unsolvedColIndices = [...Array(s.length).keys()].filter(c => !s.map(row => row[c]).some(cell => cell.status.at(-1) === 'queen'));
             for (let size = 2; size <= maxSize; size++) {
                 const rowCombos = getCombinations(unsolvedRowIndices, size);
                 for (let indices of rowCombos) {
                     const cellsInRows = indices.flatMap(r => s[r]).filter(c => c.status.at(-1) === 'empty');
-                    const colorsInRows = [...new Set(cellsInRows.map(c => c.color))];
-                    if (colorsInRows.length === size && colorsInRows.every(id => unsolvedRegions.includes(id))) {
+                    const coloursInRows = [...new Set(cellsInRows.map(c => c.colour))];
+                    if (coloursInRows.length === size && coloursInRows.every(id => unsolvedRegions.includes(id))) {
                         let currentElims = [];
                         unsolvedRowIndices.filter(r => !indices.includes(r)).forEach(rIdx => {
                             s[rIdx].forEach(cell => {
-                                if (cell.status.at(-1) === 'empty' && colorsInRows.includes(cell.color)) {
-                                    if (s[rIdx].filter(c => c.color === cell.color && c.status.at(-1) === 'empty').length > 1) currentElims.push({ r: cell.r, c: cell.c });
+                                if (cell.status.at(-1) === 'empty' && coloursInRows.includes(cell.colour)) {
+                                    if (s[rIdx].filter(c => c.colour === cell.colour && c.status.at(-1) === 'empty').length > 1) currentElims.push({ r: cell.r, c: cell.c });
                                 }
                             });
                         });
                         if (currentElims.length > 0) {
                             currentElims.forEach(e => s[e.r][e.c].status.push('blocked'));
-                            return { type: 'logic', method: 'Naked Row Subset', desc: `Rows ${indices.map(i => i + 1).join(',')} claim Colors ${formatColorNames(colorsInRows)}.`, elims: currentElims };
+                            return { type: 'logic', method: 'Naked Row Subset', desc: `Rows ${indices.map(i => i + 1).join(',')} claim colours ${formatColourNames(coloursInRows)}.`, elims: currentElims };
                         }
                     }
                 }
@@ -1858,8 +1859,8 @@
          * If the board breaks, the hypothetical spot is proven to be 'blocked'.
          */
         function internalContradictionChain(s) {
-            const activeRegions = colorsArray.map(id => ({ id, cells: s.flat().filter(c => c.color === id && c.status.at(-1) === 'empty') }))
-                .filter(r => r.cells.length > 0 && !s.flat().some(c => c.color === r.id && c.status.at(-1) === 'queen'));
+            const activeRegions = coloursArray.map(id => ({ id, cells: s.flat().filter(c => c.colour === id && c.status.at(-1) === 'empty') }))
+                .filter(r => r.cells.length > 0 && !s.flat().some(c => c.colour === r.id && c.status.at(-1) === 'queen'));
             activeRegions.sort((a, b) => a.cells.length - b.cells.length);
 
             for (let target of activeRegions) {
@@ -1870,7 +1871,7 @@
 
                     // 1. Mark test queen
                     ghostState[testCell.r][testCell.c].status.push('queen');
-                    let initialGhostBlocked = applyConstraints(ghostState, testCell.r, testCell.c, testCell.color);
+                    let initialGhostBlocked = applyConstraints(ghostState, testCell.r, testCell.c, testCell.colour);
 
                     // 2. Initialize step detail with the first placement
                     let stepDetail = [{
@@ -1912,9 +1913,9 @@
                     return {
                         type: 'logic',
                         method: 'Unique Survivor',
-                        desc: `QUEEN at (${q.r + 1},${q.c + 1}) in ${getColorName(target.id)}.`,
+                        desc: `QUEEN at (${q.r + 1},${q.c + 1}) in ${getColourName(target.id)}.`,
                         affected: [{ r: q.r, c: q.c }],
-                        elims: applyConstraints(s, q.r, q.c, q.color)
+                        elims: applyConstraints(s, q.r, q.c, q.colour)
                     };
                 }
             }
@@ -1942,7 +1943,7 @@
 
                     let newlyBlocked = [];
                     gs.flat().forEach(cell => {
-                        if (cell.status.at(-1) === 'empty' && wouldBlock(gs, q.r, q.c, cell.r, cell.c, q.color)) {
+                        if (cell.status.at(-1) === 'empty' && wouldBlock(gs, q.r, q.c, cell.r, cell.c, q.colour)) {
                             cell.status.push('blocked');
                             newlyBlocked.push({ r: cell.r, c: cell.c });
                             ghostBlocked.push({ r: cell.r, c: cell.c });
@@ -2000,7 +2001,7 @@
                 const analyze = (fn) => { const result = fn(JSON.parse(JSON.stringify(state))); if (result) possibleMoves.push(result); };
                 let forced = getForcedQueens(state);
                 if (forced.length > 0) {
-                    let q = forced[0]; logic = { type: 'queen', r: q.r, c: q.c, color: q.color, desc: `QUEEN: Forced ${getColorName(q.color)} at (${q.r + 1},${q.c + 1})`, affected: [{ r: q.r, c: q.c }], elims: applyConstraints(JSON.parse(JSON.stringify(state)), q.r, q.c, q.color) };
+                    let q = forced[0]; logic = { type: 'queen', r: q.r, c: q.c, colour: q.colour, desc: `QUEEN: Forced ${getColourName(q.colour)} at (${q.r + 1},${q.c + 1})`, affected: [{ r: q.r, c: q.c }], elims: applyConstraints(JSON.parse(JSON.stringify(state)), q.r, q.c, q.colour) };
                 } else {
                     analyze(internalSuperIntersection); analyze(internalBlockImpossible); analyze(internalLockedSubsetElimination); analyze(internalMutualExclusion); analyze(internalHiddenRegionSubsets); analyze(internalLineAdjacency);
                     if (possibleMoves.length === 0) analyze(internalContradictionChain);
@@ -2009,7 +2010,7 @@
                 if (logic) { solverTape.push(logic); solverIndex++; }
             }
             if (logic) {
-                if (logic.type === 'queen' || logic.method === 'Unique Survivor') { const q = (logic.type === 'queen') ? logic : logic.affected[0]; state[q.r][q.c].status.push('queen'); applyConstraints(state, q.r, q.c, q.color); }
+                if (logic.type === 'queen' || logic.method === 'Unique Survivor') { const q = (logic.type === 'queen') ? logic : logic.affected[0]; state[q.r][q.c].status.push('queen'); applyConstraints(state, q.r, q.c, q.colour); }
                 else if (logic.elims) logic.elims.forEach(c => state[c.r][c.c].status.push('blocked'));
                 addLog(logic.desc, (logic.type === 'queen' || logic.method === 'Unique Survivor') ? 'success' : 'logic');
                 render('solver'); applyForensicHighlights(logic);
@@ -2048,7 +2049,7 @@
 
         let isManualEditActive = false;
         let stopFlowRequested = false;
-        let selectedBuilderColor = 0;
+        let selectedBuilderColour = 0;
         let isBuilderPainting = false;
         let levelLibrary = null;
 
@@ -2090,9 +2091,9 @@
 
         /** Paint tool for manual design mode */
         function paintCell(element, r, c) {
-            if (!isManualEditActive || layout[r][c] === selectedBuilderColor) return;
-            layout[r][c] = selectedBuilderColor;
-            element.className = `cell c${selectedBuilderColor}`;
+            if (!isManualEditActive || layout[r][c] === selectedBuilderColour) return;
+            layout[r][c] = selectedBuilderColour;
+            element.className = `cell c${selectedBuilderColour}`;
             updateBuilderOutput(); markBoardAsDirty();
         }
 
@@ -2161,13 +2162,13 @@
 
         /** Simulated solve to determine difficulty tier */
         function assessDifficulty(boardLayout) {
-            let testState = boardLayout.map((row, r) => row.map((col, c) => ({ r, c, color: col, status: ['empty'] })));
+            let testState = boardLayout.map((row, r) => row.map((col, c) => ({ r, c, colour: col, status: ['empty'] })));
             let peakTier = 0; const size = testState.length;
             searchLoop: while (true) {
                 if (testState.flat().filter(c => c.status.at(-1) === 'queen').length === size) return ["Easy", "Medium", "Hard", "Super Hard"][peakTier];
                 let result;
                 let forced = getForcedQueens(testState);
-                if (forced.length > 0) { let q = forced[0]; testState[q.r][q.c].status.push('queen'); applyConstraints(testState, q.r, q.c, q.color); continue searchLoop; }
+                if (forced.length > 0) { let q = forced[0]; testState[q.r][q.c].status.push('queen'); applyConstraints(testState, q.r, q.c, q.colour); continue searchLoop; }
                 if (result = internalSuperIntersection(testState)) { peakTier = Math.max(peakTier, 0); continue searchLoop; }
                 if (result = internalBlockImpossible(testState)) { peakTier = Math.max(peakTier, 1); continue searchLoop; }
                 if (result = internalLineAdjacency(testState)) { peakTier = Math.max(peakTier, 1); continue searchLoop; }
@@ -2210,7 +2211,7 @@
             return totalDist;
         }
 
-        /** Algorithm Phase 1: Expansion of color regions from seed points */
+        /** Algorithm Phase 1: Expansion of colour regions from seed points */
         function growGreedySnakes(queens, n) {
             let board = Array(n).fill().map(() => Array(n).fill(-1));
             const seeds = queens.map((q, i) => ({ r: q.r, c: q.c, id: i }));
@@ -2282,17 +2283,17 @@
         /** Solver: Efficiently finds if 0, 1, or 2+ solutions exist for a board */
         function findTwoSolutions(board, n, maxSolutions = 2) {
             const N = Number(n); let sols = [];
-            const usedCols = new Uint8Array(N), usedColors = new Uint8Array(N), currentQueens = new Int16Array(N).fill(-1);
+            const usedCols = new Uint8Array(N), usedColours = new Uint8Array(N), currentQueens = new Int16Array(N).fill(-1);
             function solve(row) {
                 if (sols.length >= maxSolutions) return;
                 if (row === N) { const res = []; for (let i = 0; i < N; i++) res.push({ r: i, c: currentQueens[i] }); sols.push(res); return; }
                 for (let col = 0; col < N; col++) {
-                    const color = board[row][col];
-                    if (usedCols[col] || usedColors[color]) continue;
+                    const colour = board[row][col];
+                    if (usedCols[col] || usedColours[colour]) continue;
                     if (row > 0 && Math.abs(col - currentQueens[row - 1]) <= 1) continue;
-                    currentQueens[row] = col; usedCols[col] = 1; usedColors[color] = 1;
+                    currentQueens[row] = col; usedCols[col] = 1; usedColours[colour] = 1;
                     solve(row + 1);
-                    usedCols[col] = 0; usedColors[color] = 0; currentQueens[row] = -1;
+                    usedCols[col] = 0; usedColours[colour] = 0; currentQueens[row] = -1;
                 }
             }
             solve(0); return sols;
@@ -2357,8 +2358,8 @@
             palette.innerHTML = '';
             for (let i = 0; i < n; i++) {
                 const btn = document.createElement('div'); btn.className = `cell c${i}`; btn.style.width = '35px'; btn.style.height = '35px'; btn.style.cursor = 'pointer';
-                btn.style.border = (i === selectedBuilderColor) ? '3px solid black' : '1px solid #999';
-                btn.onclick = () => { selectedBuilderColor = i; createPalette(n); };
+                btn.style.border = (i === selectedBuilderColour) ? '3px solid black' : '1px solid #999';
+                btn.onclick = () => { selectedBuilderColour = i; createPalette(n); };
                 palette.appendChild(btn);
             }
         }
@@ -2368,8 +2369,8 @@
             const grid = document.getElementById('builder-grid'); if (!grid) return;
             const n = layout.length; grid.style.setProperty('--size', n); grid.innerHTML = '';
             updateBuilderLabels(n);
-            layout.forEach((row, r) => row.forEach((colorIdx, c) => {
-                const d = document.createElement('div'); d.className = `cell ${colorIdx === -1 ? '' : 'c' + colorIdx}`; d.dataset.r = r; d.dataset.c = c;
+            layout.forEach((row, r) => row.forEach((colourIdx, c) => {
+                const d = document.createElement('div'); d.className = `cell ${colourIdx === -1 ? '' : 'c' + colourIdx}`; d.dataset.r = r; d.dataset.c = c;
                 d.onpointerdown = (e) => { if (!isManualEditActive) return; isBuilderPainting = true; d.releasePointerCapture(e.pointerId); paintCell(d, r, c); markBoardAsDirty(); };
                 d.onpointerover = () => { if (isBuilderPainting && isManualEditActive) { paintCell(d, r, c); markBoardAsDirty(); } };
                 grid.appendChild(d);
