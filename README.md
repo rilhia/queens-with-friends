@@ -20,7 +20,7 @@
 ### ⚠️ Early Release Notice
 This is the **first public release** of Queens With Friends. While it has been tested, you may encounter a few bugs as I continue to refine the logic engine and UI.
 
-**Found a bug or have a suggestion?** I'd love to hear from you! Please connect with me and send a message on **[LinkedIn](https://www.linkedin.com/in/rilhia/)**. Your feedback helps make this tool better for everyone!
+**Found a bug or have a suggestion?** I'd love to hear from you! Please connect with me and send a message on **[LinkedIn](https://www.linkedin.com/in/rilhia/)**. Your feedback helps make this better for everyone!
 
 ---
 
