@@ -1256,8 +1256,18 @@
 
         /** Prepares a blank slate layout for the builder based on user selection */
         function setBoardSize(value) {
-            let newLayout = Array.from({ length: value }, () => Array(value).fill(-1));
-            render("builder", newLayout);
+            // 1. Update the global dimension variable
+            N = parseInt(value);
+
+            // 2. Update the global layout array (The "Source of Truth")
+            layout = Array.from({ length: N }, () => Array(N).fill(-1));
+
+            // 3. Re-render the builder grid with the new layout
+            render("builder", layout);
+
+            // 4. Update the palette and validation status if in builder mode
+            if (typeof createPalette === "function") createPalette(N);
+            if (typeof markBoardAsDirty === "function") markBoardAsDirty();
         }
 
         /** Universal DOM renderer for Play, Solver, and Builder grids */
