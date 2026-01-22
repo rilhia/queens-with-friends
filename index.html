@@ -4,6 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="48x48" href="images/favicon-48x48.png">
+
+    <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
     <title>Queens With Friends</title>
 
 
@@ -611,6 +615,7 @@
         }
 
 
+
         #applyBtn {
             background: #28a745;
             border: none;
@@ -621,7 +626,8 @@
             background: #218838;
         }
 
-        #applyBtn:disabled {
+        #applyBtn:disabled,
+        #shareBtn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
             background-color: #ccc !important;
@@ -1123,10 +1129,10 @@
                 <button onclick="initManualBuild()">Clear</button>
             </div>
 
-            <textarea id="output" placeholder="Board JSON..."></textarea>
+            <textarea id="output" placeholder="Board JSON..." oninput="markBoardAsDirty()"></textarea>
             <div class="btn-row" style="margin-top: 10px;">
 
-                <button onclick="sharePuzzle()">✉ Share</button>
+                <button id="shareBtn" onclick="sharePuzzle()">✉ Share</button>
                 <button onclick="importLayout()">📥 Import</button>
             </div>
         </div>
@@ -1516,10 +1522,19 @@
             if (logEl) logEl.innerHTML = "";
         }
 
+
         /** Encodes current board JSON into Base64 for URL sharing */
         async function sharePuzzle() {
+            // --- NEW VALIDATION CHECK ---
+            if (!isBoardValidated) {
+                addLog("Cannot share: You must 'Test Build' and 'Apply' your changes first.", "error");
+                return;
+            }
+            // ----------------------------
+
             const boardJson = document.getElementById('output').value;
             if (!boardJson || boardJson === "[]") return addLog("No board to share!", "error");
+
             const encodedBoard = btoa(unescape(encodeURIComponent(boardJson)));
             const baseUrl = window.location.href.split('?')[0];
             const shareUrl = `${baseUrl}?board=${encodedBoard}`;
@@ -1531,6 +1546,11 @@
                 } catch (err) { copyToClipboard(shareUrl); }
             } else { copyToClipboard(shareUrl); }
         }
+
+
+
+
+
 
         /** Fallback clipboard logic for local/unsecured environments */
         function copyToClipboard(text) {
@@ -1817,7 +1837,7 @@
         }
 
 
-        /** * NEW Strategy: Line-Based Adjacency
+    /** * NEW Strategy: Line-Based Adjacency
      * Targets: 2-cell pairs, 3-cell trios, and "Gap" patterns.
      * Logic: If a neighbor cell is adjacent to EVERY possible spot for a Queen in a Row/Col,
      * that neighbor cell is safe to block.
@@ -2095,11 +2115,18 @@
 
         /** Forces a re-validation test before the user can leave the builder tab */
         function markBoardAsDirty() {
-            isBoardValidated = false; setTabsLocked(true);
+            isBoardValidated = false;
+            setTabsLocked(true);
             document.getElementById('applyBtn').disabled = true;
+            document.getElementById('shareBtn').disabled = true; // Add this line
+
             const status = document.getElementById('status-builder');
-            status.innerText = "Mode: Editing (Test Required)"; status.style.color = "#ff9800";
+            status.innerText = "Mode: Editing (Test Required)";
+            status.style.color = "#ff9800";
         }
+
+
+
 
         /** Paint tool for manual design mode */
         function paintCell(element, r, c) {
@@ -2116,12 +2143,19 @@
             let connected = true;
             for (let i = 0; i < N; i++) { if (!checkConnectivity(layout, i, N)) { connected = false; break; } }
             const showQueens = document.getElementById('showQueensOnTest').checked;
-            if (solutions.length === 1 && connected) {
+
+            const isValid = (solutions.length === 1 && connected);
+
+            isBoardValidated = isValid;
+            document.getElementById('applyBtn').disabled = !isValid;
+            document.getElementById('shareBtn').disabled = !isValid; // Add this line
+
+            if (isValid) {
                 if (showLog) addLog("VALIDATION SUCCESS.", "success");
                 if (showQueens) displayQueensOnBuilder(solutions);
-                isBoardValidated = true; document.getElementById('applyBtn').disabled = false;
+
             } else {
-                isBoardValidated = false; document.getElementById('applyBtn').disabled = true;
+
                 if (showLog) {
                     if (!connected) addLog("VALIDATION FAILED: Fragmented.", "error");
                     else if (solutions.length === 0) addLog("VALIDATION FAILED: No solutions.", "error");
@@ -2130,6 +2164,11 @@
                 if (showQueens && solutions.length > 0) displayQueensOnBuilder(solutions);
             }
         }
+
+
+
+
+
 
         /** Push the builder's draft layout to the global activeLayout */
         function applyToTabs() {
@@ -2399,16 +2438,66 @@
             }
         }
 
-        function updateBuilderOutput() { const out = document.getElementById('output'); if (out) out.value = JSON.stringify(layout); }
+        function updateBuilderOutput() {
+            const out = document.getElementById('output');
+            if (out) out.value = JSON.stringify(layout);
+        }
 
+
+        /** Imports and validates a user-provided layout from the output textarea */
         function importLayout() {
             try {
-                const raw = document.getElementById('output').value; const imported = JSON.parse(raw);
-                if (!Array.isArray(imported) || !Array.isArray(imported[0])) throw new Error("Invalid format.");
-                layout = imported; N = layout.length; document.getElementById('boardSize').value = N;
+                const raw = document.getElementById('output').value;
+                const imported = JSON.parse(raw);
+
+                // 1. Check if it's a 2D Array
+                if (!Array.isArray(imported) || !imported.every(row => Array.isArray(row))) {
+                    throw new Error("Import failed: Must be a 2-dimensional array.");
+                }
+
+                const outerSize = imported.length;
+
+                // 2, 3, & 4. Check for Numeric values, Square Dimensions, and Value Range
+                for (let r = 0; r < outerSize; r++) {
+                    // Check Rule 3: All sub-arrays must be the same length as the outer array (N x N)
+                    if (imported[r].length !== outerSize) {
+                        throw new Error(`Import failed: Row ${r + 1} length mismatch. Expected ${outerSize}.`);
+                    }
+
+                    for (let c = 0; c < outerSize; c++) {
+                        const val = imported[r][c];
+
+                        // Check Rule 2: No non-numeric values
+                        if (typeof val !== 'number') {
+                            throw new Error(`Import failed: Non-numeric value found at (${r + 1}, ${c + 1}).`);
+                        }
+
+                        // Check Rule 4: Max number allowed is Size - 1
+                        if (val < 0 || val >= outerSize) {
+                            throw new Error(`Import failed: Invalid Region ID ${val} at (${r + 1}, ${c + 1}). Max allowed is ${outerSize - 1}.`);
+                        }
+                    }
+                }
+
+                // If we passed all checks, update the state
+                layout = imported;
+                N = outerSize;
+
+                // Sync UI
+                document.getElementById('boardSize').value = N;
                 document.getElementById('builder-grid').style.setProperty('--size', N);
-                renderBuilder(); createPalette(N); addLog(`Imported ${N}x${N}.`, "logic"); markBoardAsDirty();
-            } catch (e) { addLog("Import failed.", "error"); }
+
+                renderBuilder();
+                createPalette(N);
+                addLog(`Imported ${N}x${N} board successfully.`, "success");
+
+                // This ensures the board must be tested/applied before it can be played or shared
+                markBoardAsDirty();
+
+            } catch (e) {
+                // Log the specific error message from our 'throw' statements
+                addLog(e.message, "error");
+            }
         }
 
         function displayQueensOnBuilder(solutions) {
@@ -2488,6 +2577,7 @@
                 // Boards are pre-tested, so we bypass the "Dirty" requirement.
                 isBoardValidated = true;
                 document.getElementById('applyBtn').disabled = false;
+                document.getElementById('shareBtn').disabled = false; // Add this line
 
                 // Update UI status to show it is ready to be applied
                 const status = document.getElementById('status-builder');
