@@ -27,6 +27,8 @@ This is the **first public release** of Queens With Friends. While it has been t
 ## 🏁 Quick Start: I Just Want to Play!
 <img src="images/screenshot1.png" width="300">
 
+Load via this **[link](https://rilhia.github.io/queens-with-friends/)**.
+
 When you first load the game, a puzzle is already waiting for you on the **Play** tab.
 
 1.  **Start the Game:** Press the "Start Game" button. A 3-2-1 countdown will begin.
